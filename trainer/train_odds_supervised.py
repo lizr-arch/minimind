@@ -13,11 +13,11 @@ Usage:
 import os
 import sys
 
-__package__ = "trainer"
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import argparse
 import math
+import random
 import time
 import warnings
 
@@ -28,9 +28,29 @@ from torch.utils.data import DataLoader
 from model.model_oddsmind import OddsMindConfig, OddsMindModel
 from dataset.odds_dataset import OddsDataset
 from dataset.odds_collator import OddsCollator
-from trainer.trainer_utils import get_lr, Logger, setup_seed
 
 warnings.filterwarnings("ignore")
+
+
+# ── Inlined utilities (avoid pulling trainer_utils + its deps) ─────────
+
+def get_lr(current_step, total_steps, lr):
+    """Cosine warmup-decay LR schedule (same formula as MiniMind)."""
+    return lr * (0.1 + 0.45 * (1 + math.cos(math.pi * current_step / total_steps)))
+
+
+def Logger(content):
+    """Print helper."""
+    print(content)
+
+
+def setup_seed(seed: int):
+    """Set random seeds for reproducibility."""
+    random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
 
 # ── Training loop ──────────────────────────────────────────────────────

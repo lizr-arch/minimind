@@ -38,19 +38,19 @@ def load_model(model_path: str, config: OddsMindConfig, device: str) -> OddsMind
 
 
 def load_match(input_path: str) -> dict:
-    """Load a single match from JSON or JSONL (first valid line)."""
+    """Load a single match from JSONL (first line) or single JSON file."""
     with open(input_path, "r", encoding="utf-8") as f:
         text = f.read().strip()
-
-    # Try as single JSON object
-    if text.startswith("{"):
-        return json.loads(text)
 
     # Try as JSONL — take first non-empty line
     for line in text.split("\n"):
         line = line.strip()
-        if line:
+        if line and line.startswith("{"):
             return json.loads(line)
+
+    # Fallback: single JSON object
+    if text.startswith("{"):
+        return json.loads(text)
 
     raise ValueError(f"Cannot parse input: {input_path}")
 
