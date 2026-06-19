@@ -1,0 +1,11 @@
+Div,Date,Time,HomeTeam,AwayTeam,FTHG,FTAG,FTR,B365H,B365D,B365A,B365AH,B365AHH,B365AHA
+EPL,2024-08-17,15:00,Arsenal,Wolves,2,0,H,1.62,4.10,5.40,-1.0,0.92,0.98
+EPL,2024-08-17,17:30,Liverpool,Brentford,2,1,H,1.44,4.75,6.50,-1.25,0.88,0.92
+EPL,2024-08-18,14:00,Leicester,Tottenham,1,1,D,3.60,3.60,2.05,0.5,0.86,0.94
+EPL,2024-08-18,16:30,Chelsea,Man City,1,2,A,3.20,3.30,2.20,0.25,0.90,0.90
+EPL,2024-08-19,20:00,Newcastle,Southampton,4,0,H,1.35,5.00,8.50,-1.75,0.85,0.95
+EPL,2024-08-20,19:45,Everton,Fulham,0,0,D,2.55,3.20,2.80,0.0,0.92,0.88
+EPL,2024-08-21,15:00,West Ham,Aston Villa,1,3,A,2.80,3.40,2.45,0.25,0.88,0.92
+EPL,2024-08-22,20:00,Brighton,Bournemouth,2,2,D,2.00,3.60,3.50,-0.5,0.95,0.85
+EPL,invalid_date,15:00,BadTeam,GoodTeam,?,?,X,1.80,3.50,4.00,-0.5,0.90,0.90
+EPL,2024-08-24,15:00,NoOdds,Never,1,0,H,,,,,,

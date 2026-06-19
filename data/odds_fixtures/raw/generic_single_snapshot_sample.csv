@@ -1,0 +1,4 @@
+league,date,time,home,away,home_goals,away_goals,euro_h,euro_d,euro_a,asian_line,upper_water,lower_water
+LaLiga,2024-08-25,18:00,Barcelona,Valencia,3,1,1.50,4.20,6.00,-1.0,0.92,0.88
+LaLiga,2024-08-25,20:00,Real Madrid,Betis,2,0,1.40,4.50,7.50,-1.25,0.85,0.95
+LaLiga,2024-08-26,19:00,Sevilla,Villarreal,1,1,2.40,3.20,3.00,0.0,0.90,0.90
