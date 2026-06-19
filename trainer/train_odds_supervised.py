@@ -1,0 +1,163 @@
+"""
+OddsMind — supervised smoke training script (P0.1).
+
+This is a minimal training loop for verification purposes.  It uses
+fixture data, runs 1 epoch by default, and saves a single checkpoint.
+
+Usage:
+    python trainer/train_odds_supervised.py \
+        --data data/odds_fixtures/sample_odds_matches.jsonl \
+        --epochs 1 --batch-size 4 --device cpu --out-dir out_odds
+"""
+
+import os
+import sys
+
+__package__ = "trainer"
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import argparse
+import math
+import time
+import warnings
+
+import torch
+from torch import optim
+from torch.utils.data import DataLoader
+
+from model.model_oddsmind import OddsMindConfig, OddsMindModel
+from dataset.odds_dataset import OddsDataset
+from dataset.odds_collator import OddsCollator
+from trainer.trainer_utils import get_lr, Logger, setup_seed
+
+warnings.filterwarnings("ignore")
+
+
+# ── Training loop ──────────────────────────────────────────────────────
+
+def train_epoch(model, loader, optimizer, epoch, args):
+    """Single epoch training loop."""
+    model.train()
+    total_loss = 0.0
+    total_euro = 0.0
+    total_asian = 0.0
+    steps = len(loader)
+    start_time = time.time()
+
+    for step, batch in enumerate(loader, start=1):
+        features = batch["features"].to(args.device)
+        attention_mask = batch["attention_mask"].to(args.device)
+        euro_labels = batch["euro_labels"].to(args.device)
+        asian_labels = batch["asian_labels"].to(args.device)
+
+        # LR schedule
+        lr = get_lr(
+            (epoch - 1) * steps + step,
+            args.epochs * steps,
+            args.learning_rate,
+        )
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = lr
+
+        optimizer.zero_grad()
+
+        out = model(
+            features,
+            attention_mask=attention_mask,
+            euro_labels=euro_labels,
+            asian_labels=asian_labels,
+        )
+
+        loss = out["loss"]
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item()
+        total_euro += out["euro_loss"].item()
+        total_asian += out["asian_loss"].item()
+
+        if step % max(1, steps // 5) == 0 or step == steps:
+            Logger(
+                f"Epoch {epoch}/{args.epochs} [{step}/{steps}] "
+                f"loss={loss.item():.4f} "
+                f"(euro={out['euro_loss'].item():.4f} "
+                f"asian={out['asian_loss'].item():.4f}) "
+                f"lr={lr:.6f}"
+            )
+
+    avg_loss = total_loss / steps
+    avg_euro = total_euro / steps
+    avg_asian = total_asian / steps
+    elapsed = time.time() - start_time
+    Logger(
+        f"Epoch {epoch} complete: "
+        f"avg_loss={avg_loss:.4f} "
+        f"avg_euro={avg_euro:.4f} "
+        f"avg_asian={avg_asian:.4f} "
+        f"time={elapsed:.1f}s"
+    )
+    return avg_loss
+
+
+# ── Main ────────────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(description="OddsMind Supervised Smoke Train")
+    parser.add_argument("--data", type=str, default="data/odds_fixtures/sample_odds_matches.jsonl")
+    parser.add_argument("--epochs", type=int, default=1)
+    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--hidden-size", type=int, default=256)
+    parser.add_argument("--num-layers", type=int, default=4)
+    parser.add_argument("--num-heads", type=int, default=8)
+    parser.add_argument("--max-seq-len", type=int, default=64)
+    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--out-dir", type=str, default="out_odds")
+    parser.add_argument("--seed", type=int, default=42)
+    args = parser.parse_args()
+
+    setup_seed(args.seed)
+
+    # Config
+    config = OddsMindConfig(
+        hidden_size=args.hidden_size,
+        num_hidden_layers=args.num_layers,
+        num_attention_heads=args.num_heads,
+    )
+
+    # Data
+    Logger(f"Loading data from: {args.data}")
+    dataset = OddsDataset(args.data, max_seq_len=args.max_seq_len)
+    Logger(f"  {len(dataset)} samples")
+    collator = OddsCollator()
+    loader = DataLoader(
+        dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        collate_fn=collator,
+    )
+
+    # Model
+    Logger(f"Building OddsMindModel: hidden={config.hidden_size}, layers={config.num_hidden_layers}")
+    model = OddsMindModel(config).to(args.device)
+    total_params = sum(p.numel() for p in model.parameters())
+    Logger(f"  Params: {total_params:,} ({total_params/1e6:.3f}M)")
+
+    # Optimizer
+    optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
+
+    # Train
+    for epoch in range(1, args.epochs + 1):
+        train_epoch(model, loader, optimizer, epoch, args)
+
+    # Save checkpoint
+    os.makedirs(args.out_dir, exist_ok=True)
+    ckp_path = os.path.join(args.out_dir, "oddsmind_smoke.pth")
+    torch.save(model.state_dict(), ckp_path)
+    Logger(f"Checkpoint saved to: {ckp_path}")
+
+    Logger("OddsMind smoke training complete.")
+
+
+if __name__ == "__main__":
+    main()
