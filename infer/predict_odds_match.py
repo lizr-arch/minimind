@@ -26,7 +26,10 @@ from model.model_oddsmind import OddsMindConfig, OddsMindModel
 from dataset.odds_dataset import EURO_MAP, ASIAN_MAP
 
 EURO_REV = {v: k for k, v in EURO_MAP.items()}
-ASIAN_REV = {v: k for k, v in ASIAN_MAP.items()}
+ASIAN_REV_3 = {v: k for k, v in ASIAN_MAP.items()}
+# P0.3 5-class
+from dataset.odds_dataset import ASIAN_MAP_5CLASS
+ASIAN_REV_5 = {v: k for k, v in ASIAN_MAP_5CLASS.items()}
 
 
 def load_model(model_path: str, config: OddsMindConfig, device: str) -> OddsMindModel:
@@ -55,7 +58,8 @@ def load_match(input_path: str) -> dict:
     raise ValueError(f"Cannot parse input: {input_path}")
 
 
-def predict(model: OddsMindModel, match: dict, device: str, max_seq_len: int = 64) -> dict:
+def predict(model: OddsMindModel, match: dict, device: str,
+           max_seq_len: int = 64, asian_label_mode: str = "3class") -> dict:
     """Run inference on a single match dict."""
     from dataset.odds_dataset import _event_to_features
 
@@ -81,19 +85,32 @@ def predict(model: OddsMindModel, match: dict, device: str, max_seq_len: int = 6
     euro_pred_idx = int(torch.argmax(euro_probs).item())
     asian_pred_idx = int(torch.argmax(asian_probs).item())
 
+    if asian_label_mode == "5class":
+        asian_rev = ASIAN_REV_5
+        asian_probs_dict = {
+            "upper_full_win": round(asian_probs[0].item(), 4),
+            "upper_half_win": round(asian_probs[1].item(), 4),
+            "push": round(asian_probs[2].item(), 4),
+            "upper_half_loss": round(asian_probs[3].item(), 4),
+            "upper_full_loss": round(asian_probs[4].item(), 4),
+        }
+    else:
+        asian_rev = ASIAN_REV_3
+        asian_probs_dict = {
+            "upper": round(asian_probs[0].item(), 4),
+            "push": round(asian_probs[1].item(), 4),
+            "lower": round(asian_probs[2].item(), 4),
+        }
+
     return {
         "euro_probs": {
             "home": round(euro_probs[0].item(), 4),
             "draw": round(euro_probs[1].item(), 4),
             "away": round(euro_probs[2].item(), 4),
         },
-        "asian_probs": {
-            "upper": round(asian_probs[0].item(), 4),
-            "push": round(asian_probs[1].item(), 4),
-            "lower": round(asian_probs[2].item(), 4),
-        },
+        "asian_probs": asian_probs_dict,
         "euro_prediction": EURO_REV[euro_pred_idx],
-        "asian_prediction": ASIAN_REV[asian_pred_idx],
+        "asian_prediction": asian_rev[asian_pred_idx],
     }
 
 
@@ -110,12 +127,18 @@ def main():
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--untrained", action="store_true",
                         help="Use a randomly initialized model (scaffold test)")
+    # P0.3 asian label mode
+    parser.add_argument("--asian-label-mode", type=str, default="3class",
+                        choices=["3class", "5class"],
+                        help="Asian handicap label granularity")
     args = parser.parse_args()
 
+    asian_num_classes = 5 if args.asian_label_mode == "5class" else 3
     config = OddsMindConfig(
         hidden_size=args.hidden_size,
         num_hidden_layers=args.num_layers,
         num_attention_heads=args.num_heads,
+        asian_num_classes=asian_num_classes,
     )
 
     device = args.device
@@ -128,7 +151,8 @@ def main():
         model = load_model(args.model, config, device)
 
     match = load_match(args.input)
-    result = predict(model, match, device, max_seq_len=args.max_seq_len)
+    result = predict(model, match, device, max_seq_len=args.max_seq_len,
+                     asian_label_mode=args.asian_label_mode)
 
     print(json.dumps(result, indent=2))
 

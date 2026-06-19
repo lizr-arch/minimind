@@ -151,6 +151,10 @@ def main():
                         help="Cutoff expansion mode (default: none = P0.1 behaviour)")
     parser.add_argument("--min-events", type=int, default=1,
                         help="Minimum events after cutoff filter to keep a sample")
+    # P0.3 asian label args
+    parser.add_argument("--asian-label-mode", type=str, default="3class",
+                        choices=["3class", "5class"],
+                        help="Asian handicap label granularity (default: 3class)")
     args = parser.parse_args()
 
     setup_seed(args.seed)
@@ -161,10 +165,12 @@ def main():
         cutoffs = [float(c.strip()) for c in args.cutoffs.split(",") if c.strip()]
 
     # Config
+    asian_num_classes = 5 if args.asian_label_mode == "5class" else 3
     config = OddsMindConfig(
         hidden_size=args.hidden_size,
         num_hidden_layers=args.num_layers,
         num_attention_heads=args.num_heads,
+        asian_num_classes=asian_num_classes,
     )
 
     # Data
@@ -175,9 +181,11 @@ def main():
         cutoffs=cutoffs,
         cutoff_mode=args.cutoff_mode,
         min_events=args.min_events,
+        asian_label_mode=args.asian_label_mode,
         seed=args.seed,
     )
     Logger(f"  Raw matches: {dataset.num_raw_matches}")
+    Logger(f"  Asian label mode: {args.asian_label_mode} ({asian_num_classes} classes)")
     Logger(f"  Cutoff mode: {args.cutoff_mode}")
     if cutoffs:
         Logger(f"  Cutoffs: {cutoffs}")

@@ -22,6 +22,17 @@ from dataset.odds_cutoff import filter_timeline_by_cutoff, build_exhaustive_cuto
 
 EURO_MAP = {"home": 0, "draw": 1, "away": 2}
 ASIAN_MAP = {"upper": 0, "push": 1, "lower": 2}
+# P0.3 5-class Asian handicap labels
+ASIAN_MAP_5CLASS = {
+    "upper_full_win": 0,
+    "upper_half_win": 1,
+    "push": 2,
+    "upper_half_loss": 3,
+    "upper_full_loss": 4,
+}
+# Reverse maps for inference
+ASIAN_REV_5CLASS = {v: k for k, v in ASIAN_MAP_5CLASS.items()}
+ASIAN_REV = {v: k for k, v in ASIAN_MAP.items()}
 
 # Fixed feature order (must match OddsEventEncoder.feature_dim)
 FEATURE_KEYS = [
@@ -40,7 +51,7 @@ def _event_to_features(event: dict) -> List[float]:
     return [float(event[k]) for k in FEATURE_KEYS]
 
 
-def _build_features_and_labels(sample: dict, max_seq_len: int) -> dict:
+def _build_features_and_labels(sample: dict, max_seq_len: int, asian_map: dict) -> dict:
     """
     Core item builder: given a sample dict (which may be an original match
     or a pre-built cutoff sample), extract features, labels, and metadata.
@@ -64,7 +75,7 @@ def _build_features_and_labels(sample: dict, max_seq_len: int) -> dict:
     )
 
     euro_label = EURO_MAP[sample["label"]["euro_result"]]
-    asian_label = ASIAN_MAP[sample["label"]["asian_result"]]
+    asian_label = asian_map[sample["label"]["asian_result"]]
 
     match_id = sample.get("sample_id", sample.get("match_id", ""))
 
@@ -99,6 +110,7 @@ class OddsDataset(Dataset):
         cutoffs:         List of cutoff values for "exhaustive" / "random".
         cutoff_mode:     "none" | "exhaustive" | "random".
         min_events:      Minimum events required after filtering.
+        asian_label_mode: "3class" (default) or "5class" (P0.3).
         seed:            Random seed for "random" mode.
     """
 
@@ -110,16 +122,21 @@ class OddsDataset(Dataset):
         cutoffs: Optional[List[float]] = None,
         cutoff_mode: str = "none",
         min_events: int = 1,
+        asian_label_mode: str = "3class",
         seed: int = 42,
     ):
         if cutoff_mode not in ("none", "exhaustive", "random"):
             raise ValueError(f"Unknown cutoff_mode: {cutoff_mode}")
+        if asian_label_mode not in ("3class", "5class"):
+            raise ValueError(f"Unknown asian_label_mode: {asian_label_mode}")
 
         self.max_seq_len = max_seq_len
         self.cutoff_minutes = cutoff_minutes
         self.cutoffs = cutoffs or []
         self.cutoff_mode = cutoff_mode
         self.min_events = min_events
+        self.asian_label_mode = asian_label_mode
+        self._asian_map = ASIAN_MAP if asian_label_mode == "3class" else ASIAN_MAP_5CLASS
 
         # Load raw matches
         raw_matches: List[dict] = []
@@ -157,7 +174,7 @@ class OddsDataset(Dataset):
 
         if self.cutoff_mode == "exhaustive":
             # Sample is already a filtered cutoff sample
-            return _build_features_and_labels(sample, self.max_seq_len)
+            return _build_features_and_labels(sample, self.max_seq_len, self._asian_map)
 
         elif self.cutoff_mode == "random":
             # Pick a random cutoff and filter
@@ -183,7 +200,7 @@ class OddsDataset(Dataset):
                 "odds_timeline": filtered,
                 "label": match["label"],
             }
-            return _build_features_and_labels(cutoff_sample, self.max_seq_len)
+            return _build_features_and_labels(cutoff_sample, self.max_seq_len, self._asian_map)
 
         else:
             # "none" mode — P0.1 behaviour
@@ -200,4 +217,4 @@ class OddsDataset(Dataset):
                 "odds_timeline": filtered,
                 "label": sample["label"],
             }
-            return _build_features_and_labels(cutoff_sample, self.max_seq_len)
+            return _build_features_and_labels(cutoff_sample, self.max_seq_len, self._asian_map)

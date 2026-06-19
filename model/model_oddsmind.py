@@ -52,7 +52,7 @@ class OddsMindConfig:
 
     # Classification heads
     euro_num_classes: int = 3       # home / draw / away
-    asian_num_classes: int = 3      # upper / push / lower
+    asian_num_classes: int = 3      # 3-class or 5-class (P0.3)
     head_dropout: float = 0.1
 
     # Future extensions

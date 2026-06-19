@@ -3,8 +3,8 @@ OddsMind classification heads.
 
 EuroResultHead:  3-class (home / draw / away)
 AsianResultHead: 3-class (upper / push / lower)
-                  Future: 5-class (upper_full_win / upper_half_win / push /
-                                    upper_half_loss / upper_full_loss)
+                 5-class (upper_full_win / upper_half_win / push /
+                           upper_half_loss / upper_full_loss) — P0.3
 """
 
 import torch
