@@ -159,7 +159,12 @@ def main():
         model.eval()
     else:
         model = OddsMindModel(config).to(device)
-        state_dict = torch.load(args.model, map_location=device)
+        ckp = torch.load(args.model, map_location=device)
+        # Handle transfer checkpoint format (wrapped in dict with model_state_dict)
+        if isinstance(ckp, dict) and "model_state_dict" in ckp:
+            state_dict = ckp["model_state_dict"]
+        else:
+            state_dict = ckp
         model.load_state_dict(state_dict)
         model.eval()
 

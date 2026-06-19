@@ -34,7 +34,11 @@ ASIAN_REV_5 = {v: k for k, v in ASIAN_MAP_5CLASS.items()}
 
 def load_model(model_path: str, config: OddsMindConfig, device: str) -> OddsMindModel:
     model = OddsMindModel(config).to(device)
-    state_dict = torch.load(model_path, map_location=device)
+    ckp = torch.load(model_path, map_location=device)
+    if isinstance(ckp, dict) and "model_state_dict" in ckp:
+        state_dict = ckp["model_state_dict"]
+    else:
+        state_dict = ckp
     model.load_state_dict(state_dict)
     model.eval()
     return model

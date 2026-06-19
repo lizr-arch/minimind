@@ -166,6 +166,9 @@ def main():
     parser.add_argument("--transformer-backend", type=str, default="odds_native",
                         choices=["odds_native", "minimind"],
                         help="Transformer backend (default: odds_native)")
+    # P0.7B pretrain transfer
+    parser.add_argument("--pretrained-encoder-checkpoint", type=str, default="",
+                        help="Path to pretrained encoder checkpoint for weight transfer")
     args = parser.parse_args()
 
     setup_seed(args.seed)
@@ -230,6 +233,22 @@ def main():
     model = OddsMindModel(config).to(args.device)
     total_params = sum(p.numel() for p in model.parameters())
     Logger(f"  Params: {total_params:,} ({total_params/1e6:.3f}M)")
+
+    # P0.7B: optional pretrained encoder loading
+    if args.pretrained_encoder_checkpoint:
+        from model.oddsmind_weight_transfer import load_pretrained_encoder_transformer
+        Logger(f"Loading pretrained encoder from: {args.pretrained_encoder_checkpoint}")
+        report = load_pretrained_encoder_transformer(
+            model, args.pretrained_encoder_checkpoint,
+            backend=config.transformer_backend, strict_shapes=True,
+        )
+        Logger(f"  Transfer report: transferred={report['transferred']}, "
+               f"skipped={report['skipped']}, missing={report['missing']}, "
+               f"shape_mismatch={report['shape_mismatch']}")
+        if report["shape_mismatch"] > 0:
+            Logger("  WARNING: shape mismatches detected!")
+            for k, ps, ss in report["shape_mismatch_details"]:
+                Logger(f"    {k}: pretrain {list(ps)} vs supervised {list(ss)}")
 
     # Optimizer
     optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
