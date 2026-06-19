@@ -1,14 +1,14 @@
 """
-OddsMind Evaluation Metrics (P0.4)
+OddsMind Evaluation Metrics (P0.4 / P0.5A)
 
 Pure PyTorch implementations — no sklearn, no numpy dependency.
 
 Functions:
-    accuracy_from_logits
-    logloss_from_logits
-    brier_from_logits
+    accuracy_from_logits / accuracy_from_probs
+    logloss_from_logits / logloss_from_probs
+    brier_from_logits / brier_from_probs
     class_counts
-    prediction_counts
+    prediction_counts / prediction_counts_from_probs
 """
 
 import math
@@ -118,6 +118,76 @@ def prediction_counts(logits: torch.Tensor, num_classes: int) -> Dict[str, int]:
         Dict mapping "class_0", "class_1", ... to prediction counts.
     """
     preds = torch.argmax(logits, dim=-1)
+    counts = {}
+    for c in range(num_classes):
+        counts[f"class_{c}"] = int((preds == c).sum().item())
+    counts["total"] = int(preds.shape[0])
+    return counts
+
+
+# ── Probability-based metrics (P0.5A) ──────────────────────────────────
+
+def accuracy_from_probs(probs: torch.Tensor, labels: torch.Tensor) -> float:
+    """
+    Compute accuracy from probability tensor (not logits).
+
+    Args:
+        probs: [N, C] float tensor, each row sums to ~1.
+        labels: [N] long tensor.
+    """
+    if probs.shape[0] == 0:
+        raise ValueError("Cannot compute accuracy on empty input")
+    preds = torch.argmax(probs, dim=-1)
+    correct = (preds == labels).sum().item()
+    return correct / probs.shape[0]
+
+
+def logloss_from_probs(
+    probs: torch.Tensor,
+    labels: torch.Tensor,
+    eps: float = 1e-12,
+) -> float:
+    """
+    Compute multi-class log-loss directly from probabilities.
+
+    logloss = -(1/N) * sum_i log(p_i[y_i])
+
+    Args:
+        probs: [N, C] float tensor (softmaxed).
+        labels: [N] long tensor.
+        eps: clamp threshold.
+    """
+    if probs.shape[0] == 0:
+        raise ValueError("Cannot compute logloss on empty input")
+    probs = probs.clamp(min=eps, max=1.0 - eps)
+    # Gather the probability of the true class
+    gathered = probs[torch.arange(probs.shape[0]), labels]
+    return -torch.log(gathered).mean().item()
+
+
+def brier_from_probs(
+    probs: torch.Tensor,
+    labels: torch.Tensor,
+    num_classes: int,
+) -> float:
+    """
+    Compute multi-class Brier score from probability tensor.
+
+    Args:
+        probs: [N, C] float tensor.
+        labels: [N] long tensor.
+        num_classes: number of classes.
+    """
+    if probs.shape[0] == 0:
+        raise ValueError("Cannot compute Brier on empty input")
+    y_onehot = F.one_hot(labels, num_classes=num_classes).float()
+    squared_error = (probs - y_onehot).pow(2).sum(dim=-1)
+    return squared_error.mean().item()
+
+
+def prediction_counts_from_probs(probs: torch.Tensor, num_classes: int) -> Dict[str, int]:
+    """Count predictions from probability tensor (same as logits version)."""
+    preds = torch.argmax(probs, dim=-1)
     counts = {}
     for c in range(num_classes):
         counts[f"class_{c}"] = int((preds == c).sum().item())
