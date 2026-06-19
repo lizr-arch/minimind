@@ -13,7 +13,7 @@ Label mapping:
 
 import json
 import random
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 
 import torch
 from torch.utils.data import Dataset
@@ -123,6 +123,7 @@ class OddsDataset(Dataset):
         cutoff_mode: str = "none",
         min_events: int = 1,
         asian_label_mode: str = "3class",
+        allowed_match_ids: Optional[Set[str]] = None,
         seed: int = 42,
     ):
         if cutoff_mode not in ("none", "exhaustive", "random"):
@@ -137,6 +138,8 @@ class OddsDataset(Dataset):
         self.min_events = min_events
         self.asian_label_mode = asian_label_mode
         self._asian_map = ASIAN_MAP if asian_label_mode == "3class" else ASIAN_MAP_5CLASS
+        self._jsonl_path = jsonl_path
+        self._allowed_ids = allowed_match_ids
 
         # Load raw matches
         raw_matches: List[dict] = []
@@ -145,7 +148,10 @@ class OddsDataset(Dataset):
                 line = line.strip()
                 if not line:
                     continue
-                raw_matches.append(json.loads(line))
+                m = json.loads(line)
+                if allowed_match_ids is not None and m["match_id"] not in allowed_match_ids:
+                    continue
+                raw_matches.append(m)
 
         self.num_raw_matches = len(raw_matches)
 

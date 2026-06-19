@@ -155,9 +155,27 @@ def main():
     parser.add_argument("--asian-label-mode", type=str, default="3class",
                         choices=["3class", "5class"],
                         help="Asian handicap label granularity (default: 3class)")
+    # P0.4 split args
+    parser.add_argument("--train-match-ids", type=str, default="",
+                        help="Path to file with train match_ids (one per line)")
+    parser.add_argument("--val-match-ids", type=str, default="",
+                        help="Path to file with val match_ids (one per line)")
+    parser.add_argument("--eval-every-epoch", action="store_true",
+                        help="Run evaluation on val set after each epoch")
     args = parser.parse_args()
 
     setup_seed(args.seed)
+
+    # Load match ID splits
+    from dataset.odds_split import load_match_ids_from_file
+    train_ids = None
+    val_ids = None
+    if args.train_match_ids:
+        train_ids = load_match_ids_from_file(args.train_match_ids)
+        Logger(f"Train match IDs: {len(train_ids)} from {args.train_match_ids}")
+    if args.val_match_ids:
+        val_ids = load_match_ids_from_file(args.val_match_ids)
+        Logger(f"Val match IDs: {len(val_ids)} from {args.val_match_ids}")
 
     # Parse cutoffs
     cutoffs = None
@@ -182,6 +200,7 @@ def main():
         cutoff_mode=args.cutoff_mode,
         min_events=args.min_events,
         asian_label_mode=args.asian_label_mode,
+        allowed_match_ids=train_ids,
         seed=args.seed,
     )
     Logger(f"  Raw matches: {dataset.num_raw_matches}")
@@ -213,6 +232,46 @@ def main():
     # Train
     for epoch in range(1, args.epochs + 1):
         train_epoch(model, loader, optimizer, epoch, args)
+
+        # P0.4: optional val evaluation
+        if args.eval_every_epoch and val_ids is not None:
+            from eval.odds_metrics import accuracy_from_logits, logloss_from_logits
+            model.eval()
+            val_ds = OddsDataset(
+                args.data,
+                max_seq_len=args.max_seq_len,
+                cutoffs=cutoffs,
+                cutoff_mode=args.cutoff_mode,
+                min_events=args.min_events,
+                asian_label_mode=args.asian_label_mode,
+                allowed_match_ids=val_ids,
+                seed=args.seed,
+            )
+            val_loader = DataLoader(val_ds, batch_size=args.batch_size,
+                                    shuffle=False, collate_fn=collator)
+            all_eu_logits, all_as_logits = [], []
+            all_eu_labels, all_as_labels = [], []
+            with torch.no_grad():
+                for batch in val_loader:
+                    f = batch["features"].to(args.device)
+                    m = batch["attention_mask"].to(args.device)
+                    el = batch["euro_labels"].to(args.device)
+                    al = batch["asian_labels"].to(args.device)
+                    out = model(f, attention_mask=m)
+                    all_eu_logits.append(out["euro_logits"].cpu())
+                    all_as_logits.append(out["asian_logits"].cpu())
+                    all_eu_labels.append(el.cpu())
+                    all_as_labels.append(al.cpu())
+            eu_logits = torch.cat(all_eu_logits, dim=0)
+            as_logits = torch.cat(all_as_logits, dim=0)
+            eu_labels = torch.cat(all_eu_labels, dim=0)
+            as_labels = torch.cat(all_as_labels, dim=0)
+            Logger(f"  Val [{len(val_ds)} samples]: "
+                   f"euro_acc={accuracy_from_logits(eu_logits, eu_labels):.4f} "
+                   f"euro_loss={logloss_from_logits(eu_logits, eu_labels):.4f} "
+                   f"asian_acc={accuracy_from_logits(as_logits, as_labels):.4f} "
+                   f"asian_loss={logloss_from_logits(as_logits, as_labels):.4f}")
+            model.train()
 
     # Save checkpoint
     os.makedirs(args.out_dir, exist_ok=True)
