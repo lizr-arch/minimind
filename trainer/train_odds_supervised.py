@@ -162,6 +162,10 @@ def main():
                         help="Path to file with val match_ids (one per line)")
     parser.add_argument("--eval-every-epoch", action="store_true",
                         help="Run evaluation on val set after each epoch")
+    # P0.6 transformer backend
+    parser.add_argument("--transformer-backend", type=str, default="odds_native",
+                        choices=["odds_native", "minimind"],
+                        help="Transformer backend (default: odds_native)")
     args = parser.parse_args()
 
     setup_seed(args.seed)
@@ -189,6 +193,7 @@ def main():
         num_hidden_layers=args.num_layers,
         num_attention_heads=args.num_heads,
         asian_num_classes=asian_num_classes,
+        transformer_backend=args.transformer_backend,
     )
 
     # Data
@@ -221,7 +226,7 @@ def main():
     )
 
     # Model
-    Logger(f"Building OddsMindModel: hidden={config.hidden_size}, layers={config.num_hidden_layers}")
+    Logger(f"Building OddsMindModel: hidden={config.hidden_size}, layers={config.num_hidden_layers}, backend={config.transformer_backend}")
     model = OddsMindModel(config).to(args.device)
     total_params = sum(p.numel() for p in model.parameters())
     Logger(f"  Params: {total_params:,} ({total_params/1e6:.3f}M)")

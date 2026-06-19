@@ -55,6 +55,9 @@ class OddsMindConfig:
     asian_num_classes: int = 3      # 3-class or 5-class (P0.3)
     head_dropout: float = 0.1
 
+    # Transformer backend (P0.6)
+    transformer_backend: str = "odds_native"  # "odds_native" or "minimind"
+
     # Future extensions
     num_leagues: int = 0            # 0 = no league embedding
     num_bookmakers: int = 0         # 0 = no bookmaker embedding
@@ -151,10 +154,27 @@ class OddsMindModel(nn.Module):
             dropout=self.config.dropout,
         )
 
-        self.layers = nn.ModuleList([
-            OddsTransformerBlock(self.config)
-            for _ in range(self.config.num_hidden_layers)
-        ])
+        # ── Transformer backend ──
+        backend = self.config.transformer_backend
+        if backend == "odds_native":
+            self.layers = nn.ModuleList([
+                OddsTransformerBlock(self.config)
+                for _ in range(self.config.num_hidden_layers)
+            ])
+            self._use_native_forward = True
+        elif backend == "minimind":
+            from model.oddsmind_minimind_adapter import MiniMindBlockAdapter
+            self._minimind_adapter = MiniMindBlockAdapter(
+                hidden_size=self.config.hidden_size,
+                num_layers=self.config.num_hidden_layers,
+                num_heads=self.config.num_attention_heads,
+                num_kv_heads=self.config.num_attention_heads // 2,
+                max_seq_len=self.config.max_seq_len,
+                dropout=self.config.dropout,
+            )
+            self._use_native_forward = False
+        else:
+            raise ValueError(f"Unknown transformer_backend: {backend}")
 
         self.final_norm = RMSNorm(self.config.hidden_size)
 
@@ -190,9 +210,12 @@ class OddsMindModel(nn.Module):
         if attention_mask is not None:
             key_padding_mask = ~attention_mask.bool()  # True where PAD
 
-        # 3. Pass through Transformer blocks
-        for layer in self.layers:
-            h = layer(h, key_padding_mask=key_padding_mask)
+        # 3. Pass through Transformer blocks (backend-specific)
+        if self._use_native_forward:
+            for layer in self.layers:
+                h = layer(h, key_padding_mask=key_padding_mask)
+        else:
+            h = self._minimind_adapter(h, key_padding_mask=key_padding_mask)
 
         # 4. Final norm
         h = self.final_norm(h)

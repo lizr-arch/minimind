@@ -131,6 +131,8 @@ def main():
     parser.add_argument("--asian-label-mode", type=str, default="3class",
                         choices=["3class", "5class"],
                         help="Asian handicap label granularity")
+    parser.add_argument("--transformer-backend", type=str, default="odds_native",
+                        choices=["odds_native", "minimind"])
     args = parser.parse_args()
 
     asian_num_classes = 5 if args.asian_label_mode == "5class" else 3
@@ -139,6 +141,7 @@ def main():
         num_hidden_layers=args.num_layers,
         num_attention_heads=args.num_heads,
         asian_num_classes=asian_num_classes,
+        transformer_backend=args.transformer_backend,
     )
 
     device = args.device

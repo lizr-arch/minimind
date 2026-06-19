@@ -138,6 +138,8 @@ def main():
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--device", type=str,
                         default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument("--transformer-backend", type=str, default="odds_native",
+                        choices=["odds_native", "minimind"])
     args = parser.parse_args()
 
     device = args.device
@@ -149,6 +151,7 @@ def main():
         num_hidden_layers=args.num_layers,
         num_attention_heads=args.num_heads,
         asian_num_classes=asian_num_classes,
+        transformer_backend=args.transformer_backend,
     )
 
     if args.untrained or not args.model:
