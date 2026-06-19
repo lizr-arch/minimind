@@ -1,13 +1,22 @@
 """
-OddsMind — supervised smoke training script (P0.1).
+OddsMind — supervised smoke training script (P0.2).
 
 This is a minimal training loop for verification purposes.  It uses
 fixture data, runs 1 epoch by default, and saves a single checkpoint.
 
 Usage:
+    # P0.1 mode (no cutoffs)
     python trainer/train_odds_supervised.py \
         --data data/odds_fixtures/sample_odds_matches.jsonl \
         --epochs 1 --batch-size 4 --device cpu --out-dir out_odds
+
+    # P0.2 exhaustive cutoff mode
+    python trainer/train_odds_supervised.py \
+        --data data/odds_fixtures/sample_odds_matches.jsonl \
+        --epochs 1 --batch-size 2 --hidden-size 64 --num-layers 2 \
+        --num-heads 4 --device cpu \
+        --cutoffs 90,60,30 --cutoff-mode exhaustive \
+        --out-dir runs/oddsmind_p0_2_cutoff_smoke
 """
 
 import os
@@ -134,9 +143,22 @@ def main():
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--out-dir", type=str, default="out_odds")
     parser.add_argument("--seed", type=int, default=42)
+    # P0.2 cutoff args
+    parser.add_argument("--cutoffs", type=str, default="",
+                        help="Comma-separated cutoff minutes, e.g. '90,60,30'")
+    parser.add_argument("--cutoff-mode", type=str, default="none",
+                        choices=["none", "exhaustive", "random"],
+                        help="Cutoff expansion mode (default: none = P0.1 behaviour)")
+    parser.add_argument("--min-events", type=int, default=1,
+                        help="Minimum events after cutoff filter to keep a sample")
     args = parser.parse_args()
 
     setup_seed(args.seed)
+
+    # Parse cutoffs
+    cutoffs = None
+    if args.cutoffs:
+        cutoffs = [float(c.strip()) for c in args.cutoffs.split(",") if c.strip()]
 
     # Config
     config = OddsMindConfig(
@@ -147,8 +169,22 @@ def main():
 
     # Data
     Logger(f"Loading data from: {args.data}")
-    dataset = OddsDataset(args.data, max_seq_len=args.max_seq_len)
-    Logger(f"  {len(dataset)} samples")
+    dataset = OddsDataset(
+        args.data,
+        max_seq_len=args.max_seq_len,
+        cutoffs=cutoffs,
+        cutoff_mode=args.cutoff_mode,
+        min_events=args.min_events,
+        seed=args.seed,
+    )
+    Logger(f"  Raw matches: {dataset.num_raw_matches}")
+    Logger(f"  Cutoff mode: {args.cutoff_mode}")
+    if cutoffs:
+        Logger(f"  Cutoffs: {cutoffs}")
+    Logger(f"  Training samples: {len(dataset)}")
+    if dataset.cutoff_counts:
+        for k in sorted(dataset.cutoff_counts.keys(), key=int):
+            Logger(f"    cutoff={k}: {dataset.cutoff_counts[k]} samples")
     collator = OddsCollator()
     loader = DataLoader(
         dataset,
