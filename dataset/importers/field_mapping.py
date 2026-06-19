@@ -28,6 +28,13 @@ class FieldMapping:
     lower_water: str = ""
     season: str = ""
     ftr: str = ""  # full-time result string e.g. "H"/"D"/"A"
+    # P0.9R closing odds (for dual-timeline open+closing)
+    closing_euro_h: str = ""
+    closing_euro_d: str = ""
+    closing_euro_a: str = ""
+    closing_asian_line: str = ""
+    closing_upper_water: str = ""
+    closing_lower_water: str = ""
 
 
 # Built-in presets
@@ -43,10 +50,17 @@ PRESETS: Dict[str, FieldMapping] = {
         euro_h="B365H",
         euro_d="B365D",
         euro_a="B365A",
-        asian_line="B365AH",
+        asian_line="AHh",
         upper_water="B365AHH",
         lower_water="B365AHA",
         ftr="FTR",
+        # P0.9R closing odds extensions
+        closing_euro_h="B365CH",
+        closing_euro_d="B365CD",
+        closing_euro_a="B365CA",
+        closing_asian_line="AHCh",
+        closing_upper_water="B365CAHH",
+        closing_lower_water="B365CAHA",
     ),
     "generic_single_snapshot": FieldMapping(
         league_id="league",
