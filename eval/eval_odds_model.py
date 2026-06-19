@@ -140,6 +140,7 @@ def main():
                         default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--transformer-backend", type=str, default="odds_native",
                         choices=["odds_native", "minimind"])
+    parser.add_argument("--out-json", type=str, default="")
     args = parser.parse_args()
 
     device = args.device
@@ -203,6 +204,11 @@ def main():
     result["num_matches"] = unique_matches
 
     print(json.dumps(result, indent=2, default=str))
+
+    if args.out_json:
+        os.makedirs(os.path.dirname(args.out_json) or ".", exist_ok=True)
+        with open(args.out_json, "w", encoding="utf-8") as f:
+            f.write(json.dumps(result, indent=2, default=str) + "\n")
 
 
 if __name__ == "__main__":
