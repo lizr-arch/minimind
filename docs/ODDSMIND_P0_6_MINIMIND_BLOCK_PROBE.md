@@ -78,6 +78,24 @@ no token embeddings, no LM head. These are entirely replaced by OddsMind's
 All MiniMind source files are imported read-only. Patching (`is_causal=False`)
 happens on the adapter's own block instances, not on the original classes.
 
-## 7. Next Phase
+## 7. P0.6R Runtime Activation Result
+
+| Check | Result |
+|---|---|
+| `transformers` installed | ✅ 5.12.1 |
+| Adapter import | ✅ `MiniMindBlockAdapter` imports cleanly |
+| minimind forward | ✅ euro_logits [2,3], asian_logits [2,5] |
+| minimind loss | ✅ computed, > 0 |
+| minimind masked forward | ✅ attention_mask working |
+| minimind smoke train | ✅ 1 epoch, avg_loss=2.67, val acc reported |
+| minimind inference | ✅ JSON probabilities, sums ≈ 1 |
+| native regression | ✅ unchanged |
+| tokenizer / LM Head used | ❌ Not used |
+| MiniMind files modified | ❌ Zero modifications |
+
+**Recommendation**: Keep `minimind` backend as an optional, experimental path.
+Default stays `odds_native`.  Both backends are now runtime-verified.
+
+## 8. Next Phase
 
 **P0.7 — Odds Self-Supervised Pretraining Scaffold**
