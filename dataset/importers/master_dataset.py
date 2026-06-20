@@ -131,12 +131,9 @@ def import_master_dataset(
             report["skipped_matches"] += 1
             continue
 
-        # Filter in-play and clamp edge cases (MBK slightly negative → 0)
-        eu = [e for e in eu if e.get("minutes_before_kickoff", 0) >= 0]
-        for e in ah:
-            mbk = e.get("minutes_before_kickoff", 0)
-            if mbk < 0:
-                e["minutes_before_kickoff"] = 0  # clamp to kickoff time
+        # Filter in-play events (MBK < 0 OR explicitly marked in_play)
+        eu = [e for e in eu if e.get("minutes_before_kickoff", 0) >= 0 and not e.get("in_play")]
+        ah = [e for e in ah if e.get("minutes_before_kickoff", 0) >= 0 and not e.get("in_play")]
         if not eu:
             report["errors"]["inplay_filtered"] += 1
             report["skipped_matches"] += 1
