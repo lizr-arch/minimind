@@ -1,0 +1,24 @@
+{
+  "models": {
+    "deterministic": {
+      "euro_lowest_odds_euro_acc": 0.6140350877192983,
+      "euro_lowest_odds_euro_logloss": 10.664605140686035,
+      "euro_lowest_odds_brier": 0.7719298005104065,
+      "euro_implied_prob_euro_acc": 0.6140350877192983,
+      "euro_implied_prob_euro_logloss": 0.9391613602638245,
+      "euro_implied_prob_brier": 0.5561709403991699,
+      "asian_low_water_euro_acc": 0.6491228070175439,
+      "asian_low_water_euro_logloss": 9.69509506225586,
+      "asian_low_water_brier": 0.7017543911933899
+    },
+    "oddsmind": {
+      "euro_accuracy": 0.6491228070175439,
+      "euro_logloss": 0.9498616456985474,
+      "euro_brier": 0.5614379644393921,
+      "asian_accuracy": 0.7017543859649122,
+      "asian_logloss": 0.8093284964561462,
+      "asian_brier": 0.3953985571861267,
+      "num_samples": 57
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "num_samples": 57,
+  "baselines": {
+    "euro_lowest_odds": {
+      "accuracy": 0.6140350877192983,
+      "logloss": 10.664605140686035,
+      "brier": 0.7719298005104065,
+      "label_counts": {
+        "class_0": 23,
+        "class_1": 12,
+        "class_2": 22,
+        "total": 57
+      },
+      "prediction_counts": {
+        "class_0": 40,
+        "class_1": 0,
+        "class_2": 17,
+        "total": 57
+      }
+    },
+    "euro_implied_prob": {
+      "accuracy": 0.6140350877192983,
+      "logloss": 0.9391613602638245,
+      "brier": 0.5561709403991699,
+      "label_counts": {
+        "class_0": 23,
+        "class_1": 12,
+        "class_2": 22,
+        "total": 57
+      },
+      "prediction_counts": {
+        "class_0": 40,
+        "class_1": 0,
+        "class_2": 17,
+        "total": 57
+      }
+    },
+    "asian_low_water": {
+      "accuracy": 0.6491228070175439,
+      "logloss": 9.69509506225586,
+      "brier": 0.7017543911933899,
+      "label_counts": {
+        "class_0": 6,
+        "class_1": 3,
+        "class_2": 31,
+        "class_3": 3,
+        "class_4": 14,
+        "total": 57
+      },
+      "prediction_counts": {
+        "class_0": 16,
+        "class_1": 0,
+        "class_2": 32,
+        "class_3": 0,
+        "class_4": 9,
+        "total": 57
+      }
+    },
+    "uniform": {
+      "euro": {
+        "accuracy": 0.40350877192982454,
+        "logloss": 1.0986123085021973,
+        "brier": 0.6666665077209473
+      },
+      "asian": {
+        "accuracy": 0.10526315789473684,
+        "logloss": 1.6094380617141724,
+        "brier": 0.8000001907348633
+      }
+    }
+  },
+  "by_cutoff": {
+    "0": {
+      "num_samples": 57,
+      "euro_lowest_odds_accuracy": 0.6140350877192983,
+      "euro_implied_prob_accuracy": 0.6140350877192983,
+      "asian_low_water_accuracy": 0.6491228070175439
+    }
+  },
+  "num_matches": 57
+}
