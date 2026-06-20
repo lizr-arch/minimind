@@ -25,6 +25,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import argparse
+import copy
 import math
 import random
 import time
@@ -65,7 +66,7 @@ def setup_seed(seed: int):
 
 # ── Training loop ──────────────────────────────────────────────────────
 
-def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None):
+def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_model=None):
     """Single epoch training loop."""
     model.train()
     total_loss = 0.0
@@ -79,6 +80,14 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None):
         attention_mask = batch["attention_mask"].to(args.device)
         euro_labels = batch["euro_labels"].to(args.device)
         asian_labels = batch["asian_labels"].to(args.device)
+
+        # ── P1.2 Mixup data augmentation ──
+        if args.mixup_alpha > 0:
+            lam = random.betavariate(args.mixup_alpha, args.mixup_alpha) if random.random() < 0.5 else 1.0
+            if lam < 1.0:
+                idx = torch.randperm(features.size(0), device=features.device)
+                features = lam * features + (1 - lam) * features[idx]
+                attention_mask = attention_mask & attention_mask[idx]  # intersect masks
 
         # LR schedule
         lr = get_lr(
@@ -98,19 +107,30 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None):
             asian_labels=asian_labels,
         )
 
-        # Optionally reweight asian loss
+        # ── P1.2 Label Smoothing + optional reweight ──
+        euro_loss = F.cross_entropy(
+            out["euro_logits"], euro_labels, label_smoothing=args.label_smoothing)
         if asian_weight is not None:
-            loss = out["euro_loss"] + F.cross_entropy(
-                out["asian_logits"], asian_labels, weight=asian_weight)
+            asian_loss = F.cross_entropy(
+                out["asian_logits"], asian_labels,
+                weight=asian_weight, label_smoothing=args.label_smoothing)
         else:
-            loss = out["loss"]
+            asian_loss = F.cross_entropy(
+                out["asian_logits"], asian_labels, label_smoothing=args.label_smoothing)
+        loss = euro_loss + asian_loss
 
         loss.backward()
         optimizer.step()
 
+        # ── P1.2 EMA update ──
+        if ema_model is not None:
+            with torch.no_grad():
+                for ema_p, p in zip(ema_model.parameters(), model.parameters()):
+                    ema_p.data.mul_(args.ema_decay).add_(p.data, alpha=1 - args.ema_decay)
+
         total_loss += loss.item()
-        total_euro += out["euro_loss"].item()
-        total_asian += out["asian_loss"].item()
+        total_euro += euro_loss.item()
+        total_asian += asian_loss.item()
 
         if step % max(1, steps // 5) == 0 or step == steps:
             Logger(
@@ -179,6 +199,11 @@ def main():
     # P1.1 class weight
     parser.add_argument("--asian-class-weight", type=str, default="",
                         help="Comma-separated weights for asian 5class, e.g. '0.52,2.92,3.32,2.46,0.49'")
+    # P1.2 training techniques
+    parser.add_argument("--label-smoothing", type=float, default=0.1)
+    parser.add_argument("--mixup-alpha", type=float, default=0.0)
+    parser.add_argument("--ema-decay", type=float, default=0.999)
+    parser.add_argument("--dropout", type=float, default=0.1)
     args = parser.parse_args()
 
     setup_seed(args.seed)
@@ -207,6 +232,7 @@ def main():
         num_attention_heads=args.num_heads,
         asian_num_classes=asian_num_classes,
         transformer_backend=args.transformer_backend,
+        dropout=args.dropout,
     )
 
     # Data
@@ -244,6 +270,16 @@ def main():
     total_params = sum(p.numel() for p in model.parameters())
     Logger(f"  Params: {total_params:,} ({total_params/1e6:.3f}M)")
 
+    # P1.2: EMA model (shadow copy for weight averaging)
+    ema_model = None
+    if args.ema_decay > 0:
+        ema_model = copy.deepcopy(model)
+        ema_model.eval()
+        for p in ema_model.parameters():
+            p.requires_grad = False
+        Logger(f"  EMA enabled (decay={args.ema_decay})")
+    Logger(f"  Techniques: label_smoothing={args.label_smoothing}, dropout={args.dropout}, mixup_alpha={args.mixup_alpha}")
+
     # P0.7B: optional pretrained encoder loading
     if args.pretrained_encoder_checkpoint:
         from model.oddsmind_weight_transfer import load_pretrained_encoder_transformer
@@ -273,7 +309,7 @@ def main():
 
     # Train
     for epoch in range(1, args.epochs + 1):
-        train_epoch(model, loader, optimizer, epoch, args, asian_weight=asian_weight)
+        train_epoch(model, loader, optimizer, epoch, args, asian_weight=asian_weight, ema_model=ema_model)
 
         # P0.4: optional val evaluation
         if args.eval_every_epoch and val_ids is not None:
@@ -315,11 +351,12 @@ def main():
                    f"asian_loss={logloss_from_logits(as_logits, as_labels):.4f}")
             model.train()
 
-    # Save checkpoint
+    # Save checkpoint (prefer EMA if available)
     os.makedirs(args.out_dir, exist_ok=True)
     ckp_path = os.path.join(args.out_dir, "oddsmind_smoke.pth")
-    torch.save(model.state_dict(), ckp_path)
-    Logger(f"Checkpoint saved to: {ckp_path}")
+    save_model = ema_model if ema_model is not None else model
+    torch.save(save_model.state_dict(), ckp_path)
+    Logger(f"Checkpoint saved to: {ckp_path} ({'EMA' if ema_model else 'standard'} weights)")
 
     Logger("OddsMind smoke training complete.")
 
