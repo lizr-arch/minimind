@@ -33,6 +33,7 @@ import warnings
 import torch
 from torch import optim
 from torch.utils.data import DataLoader
+import torch.nn.functional as F
 
 from model.model_oddsmind import OddsMindConfig, OddsMindModel
 from dataset.odds_dataset import OddsDataset
@@ -64,7 +65,7 @@ def setup_seed(seed: int):
 
 # ── Training loop ──────────────────────────────────────────────────────
 
-def train_epoch(model, loader, optimizer, epoch, args):
+def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None):
     """Single epoch training loop."""
     model.train()
     total_loss = 0.0
@@ -97,7 +98,13 @@ def train_epoch(model, loader, optimizer, epoch, args):
             asian_labels=asian_labels,
         )
 
-        loss = out["loss"]
+        # Optionally reweight asian loss
+        if asian_weight is not None:
+            loss = out["euro_loss"] + F.cross_entropy(
+                out["asian_logits"], asian_labels, weight=asian_weight)
+        else:
+            loss = out["loss"]
+
         loss.backward()
         optimizer.step()
 
@@ -169,6 +176,9 @@ def main():
     # P0.7B pretrain transfer
     parser.add_argument("--pretrained-encoder-checkpoint", type=str, default="",
                         help="Path to pretrained encoder checkpoint for weight transfer")
+    # P1.1 class weight
+    parser.add_argument("--asian-class-weight", type=str, default="",
+                        help="Comma-separated weights for asian 5class, e.g. '0.52,2.92,3.32,2.46,0.49'")
     args = parser.parse_args()
 
     setup_seed(args.seed)
@@ -253,9 +263,17 @@ def main():
     # Optimizer
     optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate)
 
+    # P1.1: parse asian class weights
+    asian_weight = None
+    if args.asian_class_weight:
+        asian_weight = torch.tensor(
+            [float(w.strip()) for w in args.asian_class_weight.split(",")],
+            device=args.device)
+        Logger(f"Asian class weights: {asian_weight.tolist()}")
+
     # Train
     for epoch in range(1, args.epochs + 1):
-        train_epoch(model, loader, optimizer, epoch, args)
+        train_epoch(model, loader, optimizer, epoch, args, asian_weight=asian_weight)
 
         # P0.4: optional val evaluation
         if args.eval_every_epoch and val_ids is not None:
