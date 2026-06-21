@@ -5,3 +5,8 @@ out
 runs/
 website/
 docs-minimind/
+data/raw_csv/
+data/raw_jsonl/
+data/odds_real/
+data/odds_imported/
+*.pth
