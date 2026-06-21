@@ -196,6 +196,13 @@ class OddsMindModel(nn.Module):
             dropout=self.config.head_dropout,
         )
 
+        # P1.5 bookmaker embedding
+        from dataset.odds_dataset import BOOKMAKER_COUNT
+        self.bookmaker_embed = nn.Sequential(
+            nn.Embedding(BOOKMAKER_COUNT, self.config.hidden_size // 4),
+            nn.Linear(self.config.hidden_size // 4, self.config.hidden_size, bias=False),
+        )
+
     def forward(
         self,
         features: torch.Tensor,                  # [B, T, F]
@@ -203,6 +210,7 @@ class OddsMindModel(nn.Module):
         euro_labels: Optional[torch.Tensor] = None,      # [B]
         asian_labels: Optional[torch.Tensor] = None,     # [B]
         score_labels: Optional[torch.Tensor] = None,     # [B, 2] P1.4
+        bookmaker_ids: Optional[torch.Tensor] = None,    # [B] P1.5
         score_loss_weight: float = 0.1,
     ) -> dict:
         # ... (encoder + transformer unchanged)
@@ -220,6 +228,11 @@ class OddsMindModel(nn.Module):
             pooled = h.mean(dim=1)
         else:
             pooled = masked_mean_pool(h, attention_mask)
+
+        # P1.5: add bookmaker embedding to pooled representation
+        if bookmaker_ids is not None:
+            bk_emb = self.bookmaker_embed(bookmaker_ids)  # [B, H]
+            pooled = pooled + bk_emb
 
         euro_logits = self.euro_head(pooled)
         asian_logits = self.asian_head(pooled)

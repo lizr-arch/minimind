@@ -33,6 +33,11 @@ ASIAN_MAP_5CLASS = {
 # Reverse maps for inference
 ASIAN_REV_5CLASS = {v: k for k, v in ASIAN_MAP_5CLASS.items()}
 ASIAN_REV = {v: k for k, v in ASIAN_MAP.items()}
+# P1.5 bookmaker embedding
+BOOKMAKER_MAP = {k: i for i, k in enumerate(sorted([
+    "Bet365", "Pinnacle", "William Hill", "1XBet", "Bwin", "Betfair Exchange"
+]))}
+BOOKMAKER_COUNT = len(BOOKMAKER_MAP)
 
 # Fixed feature order (must match OddsEventEncoder.feature_dim)
 FEATURE_KEYS = [
@@ -84,11 +89,15 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_map: dict) 
     ag = sample["label"].get("away_goals", 0) or 0
     score_label = torch.tensor([float(hg), float(ag)], dtype=torch.float32)
 
+    # P1.5: bookmaker id
+    bookmaker_id = BOOKMAKER_MAP.get(sample.get("bookmaker_id", "Bet365"), 0)
+
     return {
         "features": features,
         "euro_label": euro_label,
         "asian_label": asian_label,
         "score_label": score_label,
+        "bookmaker_id": bookmaker_id,
         "match_id": match_id,
         "seq_len": len(sorted_timeline),
     }

@@ -107,6 +107,7 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
             euro_labels=euro_labels,
             asian_labels=asian_labels,
             score_labels=score_labels,
+            bookmaker_ids=batch["bookmaker_ids"],
             score_loss_weight=args.score_loss_weight,
         )
 
