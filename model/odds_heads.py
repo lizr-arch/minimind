@@ -57,6 +57,7 @@ class ScoreHead(nn.Module):
             nn.SiLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_size // 4, 2, bias=True),  # [home_goals, away_goals]
+            nn.Softplus(),  # ensure positive outputs (P1.9)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
