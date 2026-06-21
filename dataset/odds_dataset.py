@@ -79,10 +79,16 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_map: dict) 
 
     match_id = sample.get("sample_id", sample.get("match_id", ""))
 
+    # P1.4: score labels [home_goals, away_goals]
+    hg = sample["label"].get("home_goals", 0) or 0
+    ag = sample["label"].get("away_goals", 0) or 0
+    score_label = torch.tensor([float(hg), float(ag)], dtype=torch.float32)
+
     return {
         "features": features,
         "euro_label": euro_label,
         "asian_label": asian_label,
+        "score_label": score_label,
         "match_id": match_id,
         "seq_len": len(sorted_timeline),
     }

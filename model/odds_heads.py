@@ -1,10 +1,11 @@
 """
-OddsMind classification heads.
+OddsMind heads.
 
 EuroResultHead:  3-class (home / draw / away)
 AsianResultHead: 3-class (upper / push / lower)
                  5-class (upper_full_win / upper_half_win / push /
-                           upper_half_loss / upper_full_loss) — P0.3
+                           upper_half_loss / upper_full_loss)
+ScoreHead:       regress home_goals, away_goals (P1.4)
 """
 
 import torch
@@ -25,12 +26,6 @@ class EuroResultHead(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            x: [batch_size, hidden_size] pooled representation
-        Returns:
-            logits: [batch_size, num_classes]
-        """
         return self.head(x)
 
 
@@ -48,10 +43,21 @@ class AsianResultHead(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            x: [batch_size, hidden_size] pooled representation
-        Returns:
-            logits: [batch_size, num_classes]
-        """
         return self.head(x)
+
+
+class ScoreHead(nn.Module):
+    """Predicts expected goals (home, away) from pooled hidden state.  P1.4"""
+
+    def __init__(self, hidden_size: int = 768, dropout: float = 0.1):
+        super().__init__()
+        self.head = nn.Sequential(
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size, hidden_size // 4, bias=False),
+            nn.SiLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size // 4, 2, bias=True),  # [home_goals, away_goals]
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.head(x)  # [B, 2]

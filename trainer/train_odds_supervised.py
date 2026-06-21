@@ -80,6 +80,7 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
         attention_mask = batch["attention_mask"].to(args.device)
         euro_labels = batch["euro_labels"].to(args.device)
         asian_labels = batch["asian_labels"].to(args.device)
+        score_labels = batch["score_labels"].to(args.device)
 
         # ── P1.2 Mixup data augmentation ──
         if args.mixup_alpha > 0:
@@ -105,6 +106,8 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
             attention_mask=attention_mask,
             euro_labels=euro_labels,
             asian_labels=asian_labels,
+            score_labels=score_labels,
+            score_loss_weight=args.score_loss_weight,
         )
 
         # ── P1.2 Label Smoothing + optional reweight ──
@@ -204,6 +207,7 @@ def main():
     parser.add_argument("--mixup-alpha", type=float, default=0.0)
     parser.add_argument("--ema-decay", type=float, default=0.999)
     parser.add_argument("--dropout", type=float, default=0.1)
+    parser.add_argument("--score-loss-weight", type=float, default=0.1)
     args = parser.parse_args()
 
     setup_seed(args.seed)

@@ -190,54 +190,54 @@ class OddsMindModel(nn.Module):
             dropout=self.config.head_dropout,
         )
 
+        from model.odds_heads import ScoreHead
+        self.score_head = ScoreHead(
+            hidden_size=self.config.hidden_size,
+            dropout=self.config.head_dropout,
+        )
+
     def forward(
         self,
         features: torch.Tensor,                  # [B, T, F]
         attention_mask: Optional[torch.Tensor] = None,  # [B, T]  True=valid
         euro_labels: Optional[torch.Tensor] = None,      # [B]
         asian_labels: Optional[torch.Tensor] = None,     # [B]
+        score_labels: Optional[torch.Tensor] = None,     # [B, 2] P1.4
+        score_loss_weight: float = 0.1,
     ) -> dict:
-        """
-        Returns dict with keys:
-            euro_logits, asian_logits, loss (if labels provided)
-        """
-        # 1. Encode raw odds features → hidden_size
-        h = self.encoder(features)  # [B, T, H]
-
-        # 2. Build key_padding_mask from attention_mask
-        #    nn.MultiheadAttention expects key_padding_mask where True = PAD (inverted logic)
+        # ... (encoder + transformer unchanged)
+        h = self.encoder(features)
         key_padding_mask = None
         if attention_mask is not None:
-            key_padding_mask = ~attention_mask.bool()  # True where PAD
-
-        # 3. Pass through Transformer blocks (backend-specific)
+            key_padding_mask = ~attention_mask.bool()
         if self._use_native_forward:
             for layer in self.layers:
                 h = layer(h, key_padding_mask=key_padding_mask)
         else:
             h = self._minimind_adapter(h, key_padding_mask=key_padding_mask)
-
-        # 4. Final norm
         h = self.final_norm(h)
-
-        # 5. Pool over time
         if attention_mask is None:
-            pooled = h.mean(dim=1)  # [B, H]
+            pooled = h.mean(dim=1)
         else:
             pooled = masked_mean_pool(h, attention_mask)
 
-        # 6. Classification heads
-        euro_logits = self.euro_head(pooled)    # [B, 3]
-        asian_logits = self.asian_head(pooled)  # [B, 3]
+        euro_logits = self.euro_head(pooled)
+        asian_logits = self.asian_head(pooled)
+        score_preds = self.score_head(pooled)  # [B, 2]
 
-        result = {"euro_logits": euro_logits, "asian_logits": asian_logits}
+        result = {"euro_logits": euro_logits, "asian_logits": asian_logits, "score_preds": score_preds}
 
         # 7. Loss
         if euro_labels is not None and asian_labels is not None:
             euro_loss = F.cross_entropy(euro_logits, euro_labels)
             asian_loss = F.cross_entropy(asian_logits, asian_labels)
-            result["loss"] = euro_loss + asian_loss
+            total = euro_loss + asian_loss
             result["euro_loss"] = euro_loss
             result["asian_loss"] = asian_loss
+            if score_labels is not None:
+                score_loss = F.mse_loss(score_preds, score_labels.float())
+                total = total + score_loss_weight * score_loss
+                result["score_loss"] = score_loss
+            result["loss"] = total
 
         return result

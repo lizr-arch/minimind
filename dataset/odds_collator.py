@@ -41,6 +41,7 @@ class OddsCollator:
         attention_mask = torch.zeros(batch_size, max_len, dtype=torch.bool)
         euro_labels = torch.zeros(batch_size, dtype=torch.long)
         asian_labels = torch.zeros(batch_size, dtype=torch.long)
+        score_labels = torch.zeros(batch_size, 2, dtype=torch.float32)
         match_ids = []
 
         for i, item in enumerate(batch):
@@ -49,6 +50,7 @@ class OddsCollator:
             attention_mask[i, :seq_len] = True
             euro_labels[i] = item["euro_label"]
             asian_labels[i] = item["asian_label"]
+            score_labels[i] = item["score_label"]
             match_ids.append(item["match_id"])
 
         return {
@@ -56,5 +58,6 @@ class OddsCollator:
             "attention_mask": attention_mask,
             "euro_labels": euro_labels,
             "asian_labels": asian_labels,
+            "score_labels": score_labels,
             "match_ids": match_ids,
         }
