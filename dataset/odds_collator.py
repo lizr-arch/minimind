@@ -43,6 +43,7 @@ class OddsCollator:
         asian_labels = torch.zeros(batch_size, dtype=torch.long)
         score_labels = torch.zeros(batch_size, 2, dtype=torch.float32)
         bookmaker_ids = torch.zeros(batch_size, dtype=torch.long)
+        consensus_feats = torch.zeros(batch_size, 6, dtype=torch.float32)
         match_ids = []
 
         for i, item in enumerate(batch):
@@ -53,6 +54,7 @@ class OddsCollator:
             asian_labels[i] = item["asian_label"]
             score_labels[i] = item["score_label"]
             bookmaker_ids[i] = item["bookmaker_id"]
+            consensus_feats[i] = item["consensus_feats"]
             match_ids.append(item["match_id"])
 
         return {
@@ -62,5 +64,6 @@ class OddsCollator:
             "asian_labels": asian_labels,
             "score_labels": score_labels,
             "bookmaker_ids": bookmaker_ids,
+            "consensus_feats": consensus_feats,
             "match_ids": match_ids,
         }

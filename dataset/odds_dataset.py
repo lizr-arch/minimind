@@ -92,12 +92,21 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_map: dict) 
     # P1.5: bookmaker id
     bookmaker_id = BOOKMAKER_MAP.get(sample.get("bookmaker_id", "Bet365"), 0)
 
+    # P1.6: consensus features from multi-bookmaker data
+    bk_feats = sample.get("bookmaker_features", {})
+    consensus_feats = torch.tensor([
+        bk_feats.get("home_prob_avg", 0.0), bk_feats.get("home_prob_median", 0.0),
+        bk_feats.get("draw_prob_avg", 0.0), bk_feats.get("draw_prob_median", 0.0),
+        bk_feats.get("away_prob_avg", 0.0), bk_feats.get("away_prob_median", 0.0),
+    ], dtype=torch.float32)
+
     return {
         "features": features,
         "euro_label": euro_label,
         "asian_label": asian_label,
         "score_label": score_label,
         "bookmaker_id": bookmaker_id,
+        "consensus_feats": consensus_feats,
         "match_id": match_id,
         "seq_len": len(sorted_timeline),
     }

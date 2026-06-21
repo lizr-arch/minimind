@@ -202,6 +202,12 @@ class OddsMindModel(nn.Module):
             nn.Embedding(BOOKMAKER_COUNT, self.config.hidden_size // 4),
             nn.Linear(self.config.hidden_size // 4, self.config.hidden_size, bias=False),
         )
+        # P1.6 consensus feature projection (6 → H)
+        self.consensus_proj = nn.Sequential(
+            nn.Linear(6, self.config.hidden_size // 4, bias=False),
+            nn.SiLU(),
+            nn.Linear(self.config.hidden_size // 4, self.config.hidden_size, bias=False),
+        )
 
     def forward(
         self,
@@ -211,6 +217,7 @@ class OddsMindModel(nn.Module):
         asian_labels: Optional[torch.Tensor] = None,     # [B]
         score_labels: Optional[torch.Tensor] = None,     # [B, 2] P1.4
         bookmaker_ids: Optional[torch.Tensor] = None,    # [B] P1.5
+        consensus_feats: Optional[torch.Tensor] = None,  # [B, 6] P1.6
         score_loss_weight: float = 0.1,
     ) -> dict:
         # ... (encoder + transformer unchanged)
@@ -233,6 +240,11 @@ class OddsMindModel(nn.Module):
         if bookmaker_ids is not None:
             bk_emb = self.bookmaker_embed(bookmaker_ids)  # [B, H]
             pooled = pooled + bk_emb
+
+        # P1.6: add consensus features to pooled representation
+        if consensus_feats is not None:
+            consensus_proj = self.consensus_proj(consensus_feats)  # [B, H]
+            pooled = pooled + consensus_proj
 
         euro_logits = self.euro_head(pooled)
         asian_logits = self.asian_head(pooled)
