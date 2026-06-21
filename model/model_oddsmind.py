@@ -185,7 +185,7 @@ class OddsMindModel(nn.Module):
         )
 
         self.asian_head = AsianResultHead(
-            hidden_size=self.config.hidden_size,
+            hidden_size=self.config.hidden_size + 1,  # +1 for asian_line
             num_classes=self.config.asian_num_classes,
             dropout=self.config.head_dropout,
         )
@@ -247,7 +247,17 @@ class OddsMindModel(nn.Module):
             pooled = pooled + consensus_proj
 
         euro_logits = self.euro_head(pooled)
-        asian_logits = self.asian_head(pooled)
+
+        # Extract closing asian_line from features [B, T, 7], index 4 = asian_line
+        B = features.shape[0]
+        if attention_mask is not None:
+            lengths = attention_mask.sum(dim=1).long() - 1
+            lengths = lengths.clamp(min=0)
+            closing_line = features[torch.arange(B), lengths, 4:5]  # [B, 1]
+        else:
+            closing_line = features[:, -1, 4:5]  # [B, 1]
+        asian_logits = self.asian_head(torch.cat([pooled, closing_line], dim=-1))
+
         score_preds = self.score_head(pooled)  # [B, 2]
 
         result = {"euro_logits": euro_logits, "asian_logits": asian_logits, "score_preds": score_preds}
