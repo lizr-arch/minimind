@@ -185,7 +185,7 @@ class OddsMindModel(nn.Module):
         )
 
         self.asian_head = AsianResultHead(
-            hidden_size=self.config.hidden_size + 1,  # +1 for asian_line
+            hidden_size=self.config.hidden_size + 3,  # +1 for line, +2 for line_type
             num_classes=self.config.asian_num_classes,
             dropout=self.config.head_dropout,
         )
@@ -256,7 +256,20 @@ class OddsMindModel(nn.Module):
             closing_line = features[torch.arange(B), lengths, 4:5]  # [B, 1]
         else:
             closing_line = features[:, -1, 4:5]  # [B, 1]
-        asian_logits = self.asian_head(torch.cat([pooled, closing_line], dim=-1))
+
+        # Add line type features: half-line (push impossible), quarter-line
+        line_val = closing_line.squeeze(-1)  # [B]
+        # Integer: line % 1 == 0.  Half: line % 0.5 == 0 AND line % 1 != 0
+        line_is_int = (line_val % 1.0).abs() < 1e-5
+        line_is_half = (line_val % 0.5).abs() < 1e-5
+        line_is_half = line_is_half & (~line_is_int)  # half but not integer
+        line_is_quarter = ~line_is_int & ~line_is_half
+        line_type_feats = torch.stack([
+            line_is_half.float(), line_is_quarter.float()
+        ], dim=-1)  # [B, 2]
+
+        asian_input = torch.cat([pooled, closing_line, line_type_feats], dim=-1)  # [B, H+1+2]
+        asian_logits = self.asian_head(asian_input)
 
         score_preds = self.score_head(pooled)  # [B, 2]
 
