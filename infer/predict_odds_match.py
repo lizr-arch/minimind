@@ -39,7 +39,7 @@ def load_model(model_path: str, config: OddsMindConfig, device: str) -> OddsMind
         state_dict = ckp["model_state_dict"]
     else:
         state_dict = ckp
-    model.load_state_dict(state_dict)
+    model.load_state_dict(state_dict, strict=False)
     model.eval()
     return model
 
