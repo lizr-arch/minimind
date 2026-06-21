@@ -1,0 +1,49 @@
+{
+  "num_samples": 2124,
+  "euro": {
+    "accuracy": 0.4623352165725047,
+    "logloss": 1.0412391424179077,
+    "brier": 0.6237876415252686,
+    "label_counts": {
+      "class_0": 786,
+      "class_1": 595,
+      "class_2": 743,
+      "total": 2124
+    },
+    "prediction_counts": {
+      "class_0": 1406,
+      "class_1": 1,
+      "class_2": 717,
+      "total": 2124
+    }
+  },
+  "asian": {
+    "accuracy": 0.655367231638418,
+    "logloss": 1.1388330459594727,
+    "brier": 0.5379950404167175,
+    "label_counts": {
+      "class_0": 271,
+      "class_1": 62,
+      "class_2": 1369,
+      "class_3": 69,
+      "class_4": 353,
+      "total": 2124
+    },
+    "prediction_counts": {
+      "class_0": 0,
+      "class_1": 0,
+      "class_2": 2055,
+      "class_3": 69,
+      "class_4": 0,
+      "total": 2124
+    }
+  },
+  "by_cutoff": {
+    "0": {
+      "num_samples": 2124,
+      "euro_accuracy": 0.4623352165725047,
+      "asian_accuracy": 0.655367231638418
+    }
+  },
+  "num_matches": 799
+}

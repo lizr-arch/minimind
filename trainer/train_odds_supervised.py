@@ -81,6 +81,7 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
         euro_labels = batch["euro_labels"].to(args.device)
         asian_labels = batch["asian_labels"].to(args.device)
         score_labels = batch["score_labels"].to(args.device)
+        bookmaker_ids = batch["bookmaker_ids"].to(args.device)
 
         # ── P1.2 Mixup data augmentation ──
         if args.mixup_alpha > 0:
@@ -107,7 +108,7 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
             euro_labels=euro_labels,
             asian_labels=asian_labels,
             score_labels=score_labels,
-            bookmaker_ids=batch["bookmaker_ids"],
+            bookmaker_ids=bookmaker_ids,
             score_loss_weight=args.score_loss_weight,
         )
 
