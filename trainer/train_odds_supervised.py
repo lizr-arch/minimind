@@ -112,6 +112,7 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
             bookmaker_ids=bookmaker_ids,
             consensus_feats=consensus_feats,
             score_loss_weight=args.score_loss_weight,
+            score_loss_type=args.score_loss_type,
         )
 
         # ── P1.2 Label Smoothing + optional reweight ──
@@ -212,6 +213,9 @@ def main():
     parser.add_argument("--ema-decay", type=float, default=0.999)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--score-loss-weight", type=float, default=0.1)
+    parser.add_argument("--score-loss-type", type=str, default="mse",
+                        choices=["mse", "poisson"],
+                        help="Score loss function (P1.8A)")
     args = parser.parse_args()
 
     setup_seed(args.seed)

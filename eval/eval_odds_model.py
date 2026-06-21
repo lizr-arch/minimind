@@ -51,6 +51,8 @@ def evaluate_model(
     all_asian_logits = []
     all_euro_labels = []
     all_asian_labels = []
+    all_score_preds = []
+    all_score_labels = []
 
     with torch.no_grad():
         for batch in loader:
@@ -58,6 +60,7 @@ def evaluate_model(
             attention_mask = batch["attention_mask"].to(device)
             euro_labels = batch["euro_labels"].to(device)
             asian_labels = batch["asian_labels"].to(device)
+            score_labels = batch.get("score_labels")
 
             out = model(features, attention_mask=attention_mask)
 
@@ -65,13 +68,16 @@ def evaluate_model(
             all_asian_logits.append(out["asian_logits"].cpu())
             all_euro_labels.append(euro_labels.cpu())
             all_asian_labels.append(asian_labels.cpu())
+            if "score_preds" in out and score_labels is not None:
+                all_score_preds.append(out["score_preds"].cpu())
+                all_score_labels.append(score_labels.cpu())
 
     euro_logits = torch.cat(all_euro_logits, dim=0)
     asian_logits = torch.cat(all_asian_logits, dim=0)
     euro_labels = torch.cat(all_euro_labels, dim=0)
     asian_labels = torch.cat(all_asian_labels, dim=0)
 
-    return {
+    result = {
         "num_samples": int(euro_logits.shape[0]),
         "euro": {
             "accuracy": accuracy_from_logits(euro_logits, euro_labels),
@@ -88,6 +94,30 @@ def evaluate_model(
             "prediction_counts": prediction_counts(asian_logits, asian_num_classes),
         },
     }
+
+    if all_score_preds:
+        sp = torch.cat(all_score_preds, dim=0)
+        sl = torch.cat(all_score_labels, dim=0)
+        home_mae = (sp[:,0] - sl[:,0]).abs().mean().item()
+        away_mae = (sp[:,1] - sl[:,1]).abs().mean().item()
+        total_mae = ((sp.sum(-1) - sl.sum(-1)).abs().mean().item())
+        diff_mae = ((sp[:,0]-sp[:,1]) - (sl[:,0]-sl[:,1])).abs().mean().item()
+        exact = ((sp.round() == sl).all(-1)).float().mean().item()
+        collapse = (sp.std(0) < 0.05).any().item()
+        result["score"] = {
+            "home_goal_mae": home_mae,
+            "away_goal_mae": away_mae,
+            "total_goal_mae": total_mae,
+            "goal_diff_mae": diff_mae,
+            "exact_score_accuracy": exact,
+            "avg_pred_home_goals": sp[:,0].mean().item(),
+            "avg_true_home_goals": sl[:,0].mean().item(),
+            "avg_pred_away_goals": sp[:,1].mean().item(),
+            "avg_true_away_goals": sl[:,1].mean().item(),
+            "score_prediction_collapse_flag": collapse,
+        }
+
+    return result
 
 
 def evaluate_by_cutoff(

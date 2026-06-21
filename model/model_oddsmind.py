@@ -219,6 +219,7 @@ class OddsMindModel(nn.Module):
         bookmaker_ids: Optional[torch.Tensor] = None,    # [B] P1.5
         consensus_feats: Optional[torch.Tensor] = None,  # [B, 6] P1.6
         score_loss_weight: float = 0.1,
+        score_loss_type: str = "mse",  # P1.8A: "mse" or "poisson"
     ) -> dict:
         # ... (encoder + transformer unchanged)
         h = self.encoder(features)
@@ -271,7 +272,13 @@ class OddsMindModel(nn.Module):
         asian_input = torch.cat([pooled, closing_line, line_type_feats], dim=-1)  # [B, H+1+2]
         asian_logits = self.asian_head(asian_input)
 
-        score_preds = self.score_head(pooled)  # [B, 2]
+        score_raw = self.score_head(pooled)  # [B, 2] raw output
+
+        # score_preds: always positive (exp for poisson, softplus for mse)
+        if score_loss_type == "poisson":
+            score_preds = torch.exp(score_raw)
+        else:
+            score_preds = F.softplus(score_raw)
 
         result = {"euro_logits": euro_logits, "asian_logits": asian_logits, "score_preds": score_preds}
 
@@ -283,7 +290,13 @@ class OddsMindModel(nn.Module):
             result["euro_loss"] = euro_loss
             result["asian_loss"] = asian_loss
             if score_labels is not None:
-                score_loss = F.mse_loss(score_preds, score_labels.float())
+                if score_loss_type == "poisson":
+                    score_loss = F.poisson_nll_loss(
+                        score_raw, score_labels.float(),
+                        log_input=True, full=True, reduction="mean",
+                    )
+                else:
+                    score_loss = F.mse_loss(score_preds, score_labels.float())
                 total = total + score_loss_weight * score_loss
                 result["score_loss"] = score_loss
             result["loss"] = total

@@ -47,7 +47,7 @@ class AsianResultHead(nn.Module):
 
 
 class ScoreHead(nn.Module):
-    """Predicts expected goals (home, away) from pooled hidden state.  P1.4"""
+    """Predicts expected goals (home, away) from pooled hidden state.  P1.4 / P1.8A"""
 
     def __init__(self, hidden_size: int = 768, dropout: float = 0.1):
         super().__init__()
@@ -56,9 +56,8 @@ class ScoreHead(nn.Module):
             nn.Linear(hidden_size, hidden_size // 4, bias=False),
             nn.SiLU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_size // 4, 2, bias=True),  # [home_goals, away_goals]
-            nn.Softplus(),  # ensure positive outputs (P1.9)
+            nn.Linear(hidden_size // 4, 2, bias=True),  # raw output [B, 2]
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.head(x)  # [B, 2]
+        return self.head(x)  # [B, 2]: raw logits for score
