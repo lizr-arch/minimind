@@ -272,6 +272,25 @@ class OddsMindModel(nn.Module):
         asian_input = torch.cat([pooled, closing_line, line_type_feats], dim=-1)  # [B, H+1+2]
         asian_logits = self.asian_head(asian_input)
 
+        # P1.8B: legal class mask — prevent impossible predictions
+        num_ac = self.config.asian_num_classes
+        legal_mask = torch.ones(B, num_ac, device=features.device)
+        if num_ac == 3:
+            # 3-class: push (class 1) illegal on half/quarter lines
+            push_illegal = line_is_half | line_is_quarter  # [B]
+            legal_mask[push_illegal, 1] = -1e9  # push → impossible
+        elif num_ac == 5:
+            # 5-class: push (class 2) illegal on half/quarter
+            push_illegal = line_is_half | line_is_quarter
+            legal_mask[push_illegal, 2] = -1e9
+            # half_win/half_loss (class 1,3) illegal on integer
+            legal_mask[line_is_int, 1] = -1e9
+            legal_mask[line_is_int, 3] = -1e9
+            # half_win/half_loss illegal on half
+            legal_mask[line_is_half, 1] = -1e9
+            legal_mask[line_is_half, 3] = -1e9
+        asian_logits = asian_logits + legal_mask  # mask out illegal classes
+
         score_raw = self.score_head(pooled)  # [B, 2] raw output
 
         # score_preds: always positive (exp for poisson, softplus for mse)
