@@ -85,6 +85,9 @@ def predict(model: OddsMindModel, match: dict, device: str,
 
     euro_probs = torch.softmax(out["euro_logits"], dim=-1)[0].cpu()
     asian_probs = torch.softmax(out["asian_logits"], dim=-1)[0].cpu()
+    score_preds = out.get("score_preds")
+    if score_preds is not None:
+        score_preds = score_preds[0].cpu()
 
     euro_pred_idx = int(torch.argmax(euro_probs).item())
     asian_pred_idx = int(torch.argmax(asian_probs).item())
@@ -106,7 +109,7 @@ def predict(model: OddsMindModel, match: dict, device: str,
             "lower": round(asian_probs[2].item(), 4),
         }
 
-    return {
+    result = {
         "euro_probs": {
             "home": round(euro_probs[0].item(), 4),
             "draw": round(euro_probs[1].item(), 4),
@@ -116,6 +119,12 @@ def predict(model: OddsMindModel, match: dict, device: str,
         "euro_prediction": EURO_REV[euro_pred_idx],
         "asian_prediction": asian_rev[asian_pred_idx],
     }
+    if score_preds is not None:
+        result["score_prediction"] = {
+            "home_goals": round(score_preds[0].item(), 2),
+            "away_goals": round(score_preds[1].item(), 2),
+        }
+    return result
 
 
 def main():
