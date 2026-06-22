@@ -45,9 +45,12 @@ warnings.filterwarnings("ignore")
 
 # ── Inlined utilities (avoid pulling trainer_utils + its deps) ─────────
 
-def get_lr(current_step, total_steps, lr):
-    """Cosine warmup-decay LR schedule (same formula as MiniMind)."""
-    return lr * (0.1 + 0.45 * (1 + math.cos(math.pi * current_step / total_steps)))
+def get_lr(current_step, total_steps, lr, warmup_steps=0):
+    """Cosine warmup-decay LR schedule."""
+    if warmup_steps > 0 and current_step < warmup_steps:
+        return lr * current_step / warmup_steps
+    progress = (current_step - warmup_steps) / max(1, total_steps - warmup_steps)
+    return lr * (0.1 + 0.45 * (1 + math.cos(math.pi * progress)))
 
 
 def Logger(content):
@@ -97,6 +100,7 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
             (epoch - 1) * steps + step,
             args.epochs * steps,
             args.learning_rate,
+            warmup_steps=args.lr_warmup,
         )
         for param_group in optimizer.param_groups:
             param_group["lr"] = lr
@@ -128,6 +132,8 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
         loss = euro_loss + asian_loss
 
         loss.backward()
+        if args.grad_clip > 0:
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
         optimizer.step()
 
         # ── P1.2 EMA update ──
@@ -216,6 +222,10 @@ def main():
     parser.add_argument("--score-loss-type", type=str, default="mse",
                         choices=["mse", "poisson"],
                         help="Score loss function (P1.8A)")
+    parser.add_argument("--lr-warmup", type=int, default=5,
+                        help="LR warmup steps (epochs × steps_per_epoch)")
+    parser.add_argument("--grad-clip", type=float, default=1.0,
+                        help="Gradient clipping max norm")
     args = parser.parse_args()
 
     setup_seed(args.seed)

@@ -310,8 +310,10 @@ class OddsMindModel(nn.Module):
             result["asian_loss"] = asian_loss
             if score_labels is not None:
                 if score_loss_type == "poisson":
+                    # Clamp log_rate for numerical stability
+                    score_clamped = torch.clamp(score_raw, -5.0, 5.0)
                     score_loss = F.poisson_nll_loss(
-                        score_raw, score_labels.float(),
+                        score_clamped, score_labels.float(),
                         log_input=True, full=True, reduction="mean",
                     )
                 else:
