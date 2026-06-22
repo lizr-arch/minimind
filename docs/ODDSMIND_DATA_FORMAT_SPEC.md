@@ -1,4 +1,4 @@
-# OddsMind 训练数据格式规范
+# OddsMind 训练数据格式规范 v2
 
 ## 文件位置
 
@@ -6,58 +6,67 @@
 D:\code\git\betmind\minimind\data\odds_real\<任意名称>.jsonl
 ```
 
-训练脚本读取绝对路径，不限制文件名。
-
 ## 格式
 
 **JSONL**（每行一个完整 JSON 对象，行尾 `\n`，UTF-8 编码）。
+
+---
 
 ## 单行模板
 
 ```json
 {
-  "match_id": "fd-epl-16-08-2024-man-united-fulham",
-  "league_id": "EPL",
+  "match_id": "wc2026-spain-vs-saudi-arabia",
+  "league_id": "WorldCup",
   "bookmaker_id": "Bet365",
-  "kickoff_time": "2024-08-16T20:00:00+00:00",
+  "kickoff_time": "2026-06-22T00:00:00+00:00",
   "odds_timeline": [
     {
-      "minutes_before_kickoff": 85572,
-      "euro_h": 1.62,
-      "euro_d": 4.0,
-      "euro_a": 5.0,
-      "asian_line": -1.0,
-      "upper_water": 2.05,
-      "lower_water": 1.88
-    },
-    {
-      "minutes_before_kickoff": 4320,
-      "euro_h": 1.60,
-      "euro_d": 4.20,
-      "euro_a": 5.25,
-      "asian_line": -1.0,
-      "upper_water": 2.05,
-      "lower_water": 1.88
+      "minutes_before_kickoff": 10080,
+      "euro_h": 1.11,
+      "euro_d": 21.0,
+      "euro_a": 9.5,
+      "asian_line": -1.50,
+      "upper_water": 0.95,
+      "lower_water": 0.95,
+      "over_under_line": 2.5,
+      "over_water": 0.90,
+      "under_water": 1.00
     },
     {
       "minutes_before_kickoff": 0,
-      "euro_h": 1.66,
-      "euro_d": 4.10,
-      "euro_a": 5.00,
-      "asian_line": -0.75,
-      "upper_water": 1.86,
-      "lower_water": 2.07
+      "euro_h": 1.10,
+      "euro_d": 23.0,
+      "euro_a": 10.0,
+      "asian_line": -1.50,
+      "upper_water": 1.03,
+      "lower_water": 0.83,
+      "over_under_line": 2.5,
+      "over_water": 0.95,
+      "under_water": 0.95
     }
+  ],
+  "asian_handicap_lines": [
+    {"line": -1.00, "upper_water": 1.30, "lower_water": 3.50},
+    {"line": -1.25, "upper_water": 1.95, "lower_water": 1.95},
+    {"line": -1.50, "upper_water": 1.03, "lower_water": 0.83}
+  ],
+  "over_under_lines": [
+    {"line": 2.0,  "over_water": 0.70, "under_water": 1.20},
+    {"line": 2.5,  "over_water": 0.95, "under_water": 0.95},
+    {"line": 3.0,  "over_water": 1.20, "under_water": 0.70}
   ],
   "label": {
     "euro_result": "home",
-    "asian_result": "upper_full_win",
-    "home_goals": 1,
-    "away_goals": 0,
+    "asian_result": "push",
+    "home_goals": 3,
+    "away_goals": 1,
     "upper_side": "home"
   }
 }
 ```
+
+---
 
 ## 字段说明
 
@@ -65,86 +74,79 @@ D:\code\git\betmind\minimind\data\odds_real\<任意名称>.jsonl
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|:--:|------|
-| `match_id` | string | ✅ | 唯一标识，建议格式 `{联赛}_{日期}_{主队}_{客队}` |
-| `league_id` | string | ✅ | 联赛名，如 `EPL`, `LaLiga`, `SerieA`, `Bundesliga`, `Ligue1` |
-| `bookmaker_id` | string | ✅ | 博彩公司，如 `Bet365`, `Pinnacle` |
-| `kickoff_time` | string | ✅ | ISO 8601 UTC，如 `2024-08-16T20:00:00+00:00` |
-| `odds_timeline` | array | ✅ | 赔率事件列表，按 `minutes_before_kickoff` 从大到小排序 |
-| `label` | object | ✅ | 比赛结果标签 |
+| `match_id` | string | ✅ | 唯一标识 |
+| `league_id` | string | ✅ | 联赛/杯赛名，如 `EPL`, `WorldCup`, `UEFA_CL` |
+| `bookmaker_id` | string | ✅ | 博彩公司 |
+| `kickoff_time` | string | ✅ | ISO 8601 UTC |
+| `odds_timeline` | array | ✅ | 赔率变动事件，按 `minutes_before_kickoff` 从大到小 |
+| `asian_handicap_lines` | array | ✅ | 相邻亚盘盘口线（含当前盘口） |
+| `over_under_lines` | array | ✅ | 相邻大小球盘口线（含当前盘口） |
+| `label` | object | ✅ | 比赛结果（赛后补） |
 
-### odds_timeline[i]
+### odds_timeline[i] — 新增 3 个字段
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|:--:|------|
-| `minutes_before_kickoff` | float | ✅ | 距开球分钟数。开盘≈4320~10080（3-7天），收盘=0。**必须 ≥ 0** |
-| `euro_h` | float | ✅ | 欧赔主胜（> 0） |
-| `euro_d` | float | ✅ | 欧赔平局（> 0） |
-| `euro_a` | float | ✅ | 欧赔客胜（> 0） |
-| `asian_line` | float | ✅ | 亚盘让球线，主队视角。如 -1.0 表示主让1球，+0.5 表示主受半球。**必须是 0.25 的整数倍** |
-| `upper_water` | float | ✅ | 上盘水位（> 0） |
-| `lower_water` | float | ✅ | 下盘水位（> 0） |
+| `minutes_before_kickoff` | float | ✅ | 距开球分钟数，≥ 0 |
+| `euro_h` | float | ✅ | 欧赔主胜 |
+| `euro_d` | float | ✅ | 欧赔平局 |
+| `euro_a` | float | ✅ | 欧赔客胜 |
+| `asian_line` | float | ✅ | 亚盘让球线（主队视角），0.25 整数倍 |
+| `upper_water` | float | ✅ | 上盘水位 |
+| `lower_water` | float | ✅ | 下盘水位 |
+| `over_under_line` | float | ✅ | **新增** 大小球盘口线，如 2.5，0.25 整数倍 |
+| `over_water` | float | ✅ | **新增** 大球水位 |
+| `under_water` | float | ✅ | **新增** 小球水位 |
+
+### asian_handicap_lines[i]
+
+当前盘口 + 相邻盘口的水位快照（一般是收盘时刻）。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `line` | float | 盘口线 |
+| `upper_water` | float | 上盘水位 |
+| `lower_water` | float | 下盘水位 |
+
+**水位最接近的那条就是当前盘口**。模型自动识别。
+
+### over_under_lines[i]
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `line` | float | 大小球线 |
+| `over_water` | float | 大球水位 |
+| `under_water` | float | 小球水位 |
 
 ### label
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|:--:|------|
-| `euro_result` | string | ✅ | 赛果：`"home"` / `"draw"` / `"away"` |
-| `asian_result` | string | ✅ | 亚盘结果（从上盘视角），5 选 1：`"upper_full_win"` / `"upper_half_win"` / `"push"` / `"upper_half_loss"` / `"upper_full_loss"` |
-| `home_goals` | int | ✅ | 主队进球（≥ 0） |
-| `away_goals` | int | ✅ | 客队进球（≥ 0） |
-| `upper_side` | string | ✅ | 上盘方：`"home"` 或 `"away"` |
+| `euro_result` | string | ✅ | `"home"` / `"draw"` / `"away"` |
+| `asian_result` | string | ✅ | `"full_win"` / `"half_win"` / `"push"` / `"half_loss"` / `"full_loss"`（从上盘视角） |
+| `home_goals` | int | ✅ | 主队进球 |
+| `away_goals` | int | ✅ | 客队进球 |
+| `upper_side` | string | ✅ | `"home"` 或 `"away"` |
 
-## Timeline 事件数量
-
-- 最少 **1 个**事件（closing-only snapshot）
-- 推荐 **2+ 个**事件（开盘 + 收盘）
-- 最佳 **多个 movement 事件**（≥10 个更好，支持时间序列学习）
-
-## 亚盘标签计算规则
-
-从上盘视角：
-
-```
-raw_margin = upper_goals - lower_goals
-adjusted = raw_margin + asian_line
-```
-
-对四分之一盘口（如 -0.25, -0.75），拆成两个半盘分别结算：
-
-| 两个半盘结果 | 五分类标签 |
-|---|---|
-| win + win | `upper_full_win` |
-| win + push 或 push + win | `upper_half_win` |
-| push + push | `push` |
-| loss + push 或 push + loss | `upper_half_loss` |
-| loss + loss | `upper_full_loss` |
+---
 
 ## 禁止事项
 
-- ❌ `minutes_before_kickoff` < 0（滚球数据，不要混入赛前训练）
-- ❌ `euro_h/d/a` ≤ 0 或缺失
-- ❌ `asian_line` 不是 0.25 的整数倍
-- ❌ `home_goals` / `away_goals` 负值或缺失
-- ❌ `odds_timeline` 未按时间降序排列
-- ❌ 同一场比赛多行（必须一行一赛）
+- ❌ `minutes_before_kickoff` < 0（滚球）
+- ❌ 赔率 ≤ 0
+- ❌ `asian_line` / `over_under_line` 不是 0.25 整数倍
+- ❌ `odds_timeline` 未按时间降序
+- ❌ 一场多行
 
-## 验证
+## 当前盘口自动识别
 
-产出 JSONL 后可用以下命令快速验证：
+```
+水位差 = |upper_water - lower_water|
+当前盘口 = argmin(水位差)
+```
 
-```bash
-python -c "
-import json
-with open('你的文件.jsonl') as f:
-    for i, line in enumerate(f, 1):
-        s = json.loads(line)
-        assert s['match_id'], f'line {i}: missing match_id'
-        assert len(s['odds_timeline']) > 0, f'line {i}: empty timeline'
-        for e in s['odds_timeline']:
-            assert e['minutes_before_kickoff'] >= 0
-            assert e['euro_h'] > 0
-        assert s['label']['euro_result'] in ('home','draw','away')
-        assert s['label']['asian_result'] in ('upper_full_win','upper_half_win','push','upper_half_loss','upper_full_loss')
-print(f'{i} lines valid')
-"
+## 绝对路径
+
+```
+D:\code\git\betmind\minimind\docs\ODDSMIND_DATA_FORMAT_SPEC.md
 ```
