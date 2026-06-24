@@ -89,6 +89,9 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
         missing_mask = batch.get("missing_mask")
         if missing_mask is not None:
             missing_mask = missing_mask.to(args.device)
+        league_ids = batch.get("league_id_tensor")
+        if league_ids is not None:
+            league_ids = league_ids.to(args.device)
 
         # ── P1.2 Mixup data augmentation ──
         if args.mixup_alpha > 0:
@@ -118,6 +121,7 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
             score_labels=score_labels,
             bookmaker_ids=bookmaker_ids,
             consensus_feats=consensus_feats,
+            league_ids=league_ids,
             missing_mask=missing_mask,
             score_loss_weight=args.score_loss_weight,
             score_loss_type=args.score_loss_type,

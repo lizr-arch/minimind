@@ -36,6 +36,11 @@ BOOKMAKER_MAP = {k: i for i, k in enumerate(sorted([
 ]))}
 BOOKMAKER_COUNT = len(BOOKMAKER_MAP)
 
+LEAGUE_MAP = {k: i for i, k in enumerate(sorted([
+    "Bundesliga", "EPL", "LaLiga", "Ligue1", "SerieA"
+]))}
+LEAGUE_COUNT = len(LEAGUE_MAP)
+
 # Fixed feature order (must match OddsEventEncoder.feature_dim)
 FEATURE_KEYS = [
     "minutes_before_kickoff",
@@ -312,6 +317,11 @@ V4_FEATURE_NAMES = [
 
 V4_FEATURE_DIM = len(V4_FEATURE_NAMES)  # 32
 
+V5_FEATURE_NAMES = V4_FEATURE_NAMES + [
+    "euro_change_rate", "asian_change_rate", "ou_change_rate",
+]
+V5_FEATURE_DIM = len(V5_FEATURE_NAMES)  # 35
+
 
 def _event_to_features_v4(event: dict) -> List[float]:
     """Extract v4 feature vector: raw odds + implied + no-vig + overround + activity."""
@@ -409,6 +419,28 @@ def _event_to_missing_mask_v4(event: dict) -> List[float]:
         (1.0 if has_ou else 0.0),               # 30: ou_water_spread
         1.0,                                     # 31: has_over_under
     ]
+
+
+def _compute_odds_change_rate(sorted_timeline: list, current_idx: int, key: str) -> float:
+    """Rate of change: (curr - prev) / prev for an odds field.
+    Returns 0.0 for first event or missing/invalid values."""
+    if current_idx <= 0:
+        return 0.0
+    prev = sorted_timeline[current_idx - 1].get(key, 0)
+    curr = sorted_timeline[current_idx].get(key, 0)
+    if prev <= 0 or curr <= 0:
+        return 0.0
+    return (curr - prev) / prev
+
+
+def _event_to_features_v5(event: dict, change_rates: list) -> List[float]:
+    """v5 = v4 (32-dim) + 3 change rates."""
+    return _event_to_features_v4(event) + change_rates
+
+
+def _event_to_missing_mask_v5(event: dict) -> List[float]:
+    """v5 mask = v4 mask (32-dim) + 3 ones (derived, always present)."""
+    return _event_to_missing_mask_v4(event) + [1.0, 1.0, 1.0]
 
 
 # ── P1.0E: Consensus feature modes ──────────────────────────────────────
@@ -514,7 +546,9 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_label_mode:
         sorted_timeline = sorted_timeline[-max_seq_len:]
 
     # P1.18: handle empty timelines (e.g. all events filtered by cutoff)
-    if feature_schema_version == "v4":
+    if feature_schema_version == "v5":
+        fdim = V5_FEATURE_DIM
+    elif feature_schema_version == "v4":
         fdim = V4_FEATURE_DIM
     elif feature_schema_version in ("v2", "v3"):
         fdim = len(FEATURE_KEYS) + 3
@@ -523,6 +557,15 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_label_mode:
 
     if len(sorted_timeline) == 0:
         features = torch.zeros(0, fdim, dtype=torch.float32)
+    elif feature_schema_version == "v5":
+        # v5: v4 features + 3 change rates (need timeline context)
+        feature_rows = []
+        for i, e in enumerate(sorted_timeline):
+            cr_h = _compute_odds_change_rate(sorted_timeline, i, "euro_h")
+            cr_d = _compute_odds_change_rate(sorted_timeline, i, "euro_d")
+            cr_a = _compute_odds_change_rate(sorted_timeline, i, "euro_a")
+            feature_rows.append(_event_to_features_v5(e, [cr_h, cr_d, cr_a]))
+        features = torch.tensor(feature_rows, dtype=torch.float32)
     elif feature_schema_version == "v4":
         features = torch.tensor(
             [_event_to_features_v4(e) for e in sorted_timeline],
@@ -534,11 +577,16 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_label_mode:
             dtype=torch.float32,
         )
 
-    # P1.16: per-event missing mask (v3/v4 schema)
+    # P1.16: per-event missing mask (v3/v4/v5 schema)
     missing_mask = None
-    if feature_schema_version in ("v3", "v4"):
+    if feature_schema_version in ("v3", "v4", "v5"):
         if len(sorted_timeline) == 0:
             missing_mask = torch.zeros(0, fdim, dtype=torch.float32)
+        elif feature_schema_version == "v5":
+            missing_mask = torch.tensor(
+                [_event_to_missing_mask_v5(e) for e in sorted_timeline],
+                dtype=torch.float32,
+            )
         elif feature_schema_version == "v4":
             missing_mask = torch.tensor(
                 [_event_to_missing_mask_v4(e) for e in sorted_timeline],
@@ -745,7 +793,7 @@ class OddsDataset(Dataset):
                 "match_id": sample["match_id"],
                 "odds_timeline": filtered,
                 "label": sample["label"],
-                "league_id": sample.get("league_id", ""),
+        "league_id": sample.get("league_id", ""),
                 "bookmaker_id": sample.get("bookmaker_id", "Bet365"),
             }
             return _build_features_and_labels(cutoff_sample, self.max_seq_len, self.asian_label_mode,

@@ -7,11 +7,14 @@ Output batch dict:
     euro_labels:     [batch_size]                              int64
     asian_labels:    [batch_size]                              int64
     match_ids:       list[str]                                 length = batch_size
+    league_ids:      list[str]                                  length = batch_size (eval compat)
+    league_id_tensor: [batch_size]                              int64 (model input)
 """
 
 from typing import List
 
 import torch
+from dataset.odds_dataset import LEAGUE_MAP
 
 
 class OddsCollator:
@@ -47,6 +50,7 @@ class OddsCollator:
         asian_label_mask = torch.zeros(batch_size, dtype=torch.float32)
         match_ids = []
         league_ids = []
+        league_id_tensor = torch.zeros(batch_size, dtype=torch.long)
 
         # P1.16: per-event missing mask (v3 schema)
         has_missing_mask = "missing_mask" in batch[0]
@@ -66,6 +70,7 @@ class OddsCollator:
             consensus_feats[i] = item["consensus_feats"]
             match_ids.append(item["match_id"])
             league_ids.append(item.get("league_id", ""))
+            league_id_tensor[i] = LEAGUE_MAP.get(item.get("league_id", ""), 0)
 
             if has_missing_mask:
                 missing_mask[i, :seq_len] = item["missing_mask"]
@@ -81,6 +86,7 @@ class OddsCollator:
             "consensus_feats": consensus_feats,
             "match_ids": match_ids,
             "league_ids": league_ids,
+            "league_id_tensor": league_id_tensor,
         }
         if has_missing_mask:
             result["missing_mask"] = missing_mask

@@ -45,6 +45,11 @@ class OddsMindConfig:
     feature_dim: int = 13           # auto-set from schema: v1=10, v2=13
     feature_schema_version: str = "v2"  # "v1"=10dim no mask, "v2"=13dim with availability mask
 
+    def __post_init__(self):
+        schema_dims = {"v1": 10, "v2": 13, "v3": 13, "v4": 32, "v5": 35}
+        if self.feature_schema_version in schema_dims:
+            object.__setattr__(self, 'feature_dim', schema_dims[self.feature_schema_version])
+
     # Transformer body
     hidden_size: int = 256
     num_hidden_layers: int = 4
@@ -286,6 +291,12 @@ class OddsMindModel(nn.Module):
             nn.Embedding(BOOKMAKER_COUNT, self.config.hidden_size // 4),
             nn.Linear(self.config.hidden_size // 4, self.config.hidden_size, bias=False),
         )
+        # P1 league embedding
+        if self.config.num_leagues > 0:
+            self.league_embed = nn.Sequential(
+                nn.Embedding(self.config.num_leagues, self.config.hidden_size // 4),
+                nn.Linear(self.config.hidden_size // 4, self.config.hidden_size, bias=False),
+            )
         # P1.6 consensus feature projection (6 → H)
         self.consensus_proj = nn.Sequential(
             nn.Linear(6, self.config.hidden_size // 4, bias=False),
@@ -302,6 +313,7 @@ class OddsMindModel(nn.Module):
         score_labels: Optional[torch.Tensor] = None,     # [B, 2] P1.4
         bookmaker_ids: Optional[torch.Tensor] = None,    # [B] P1.5
         consensus_feats: Optional[torch.Tensor] = None,  # [B, 6] P1.6
+        league_ids: Optional[torch.Tensor] = None,       # [B] P1 league
         missing_mask: Optional[torch.Tensor] = None,     # [B, T, F] P1.16
         score_loss_weight: float = 0.1,
         score_loss_type: str = "mse",  # P1.8A: "mse" or "poisson"
@@ -354,6 +366,11 @@ class OddsMindModel(nn.Module):
         if bookmaker_ids is not None:
             bk_emb = self.bookmaker_embed(bookmaker_ids)  # [B, H]
             pooled = pooled + bk_emb
+
+        # P1: add league embedding to pooled representation
+        if league_ids is not None and self.config.num_leagues > 0:
+            lg_emb = self.league_embed(league_ids)  # [B, H]
+            pooled = pooled + lg_emb
 
         # P1.6: add consensus features to pooled representation
         if consensus_feats is not None:
