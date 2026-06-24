@@ -193,3 +193,100 @@ def prediction_counts_from_probs(probs: torch.Tensor, num_classes: int) -> Dict[
         counts[f"class_{c}"] = int((preds == c).sum().item())
     counts["total"] = int(preds.shape[0])
     return counts
+
+
+# ── P1.16: Calibration metrics ──────────────────────────────────────────
+
+def ece_from_logits(
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    num_classes: int,
+    n_bins: int = 10,
+) -> Dict:
+    """
+    Expected Calibration Error from logits.
+
+    ECE = sum over bins of (|B_k|/N) * |acc(B_k) - conf(B_k)|
+
+    Args:
+        logits: [N, C] float tensor.
+        labels: [N] long tensor.
+        num_classes: number of classes.
+        n_bins: number of equal-width confidence bins (default 10).
+
+    Returns dict with:
+        ece: scalar ECE value
+        bins: list of {bin_lower, bin_upper, count, accuracy, avg_confidence, gap}
+    """
+    probs = F.softmax(logits, dim=-1)
+    return ece_from_probs(probs, labels, num_classes, n_bins)
+
+
+def ece_from_probs(
+    probs: torch.Tensor,
+    labels: torch.Tensor,
+    num_classes: int,
+    n_bins: int = 10,
+) -> Dict:
+    """
+    Expected Calibration Error from probability tensor.
+
+    Args:
+        probs: [N, C] float tensor (softmaxed).
+        labels: [N] long tensor.
+        num_classes: number of classes.
+        n_bins: number of equal-width confidence bins (default 10).
+
+    Returns dict with:
+        ece: scalar ECE value
+        bins: list of reliability bin dicts
+    """
+    if probs.shape[0] == 0:
+        raise ValueError("Cannot compute ECE on empty input")
+
+    confidences, predictions = probs.max(dim=-1)  # [N]
+    correct = (predictions == labels).float()       # [N]
+
+    bin_boundaries = torch.linspace(0.0, 1.0, n_bins + 1, device=probs.device)
+    ece = 0.0
+    bins = []
+
+    for i in range(n_bins):
+        lower = bin_boundaries[i].item()
+        upper = bin_boundaries[i + 1].item()
+        # For the last bin, include upper bound
+        if i == n_bins - 1:
+            in_bin = (confidences >= lower) & (confidences <= upper)
+        else:
+            in_bin = (confidences >= lower) & (confidences < upper)
+
+        count = int(in_bin.sum().item())
+        if count == 0:
+            bins.append({
+                "bin_lower": round(lower, 2),
+                "bin_upper": round(upper, 2),
+                "count": 0,
+                "accuracy": None,
+                "avg_confidence": None,
+                "gap": None,
+            })
+            continue
+
+        bin_acc = correct[in_bin].mean().item()
+        bin_conf = confidences[in_bin].mean().item()
+        gap = abs(bin_acc - bin_conf)
+        ece += (count / probs.shape[0]) * gap
+
+        bins.append({
+            "bin_lower": round(lower, 2),
+            "bin_upper": round(upper, 2),
+            "count": count,
+            "accuracy": round(bin_acc, 4),
+            "avg_confidence": round(bin_conf, 4),
+            "gap": round(gap, 4),
+        })
+
+    return {
+        "ece": round(ece, 6),
+        "bins": bins,
+    }

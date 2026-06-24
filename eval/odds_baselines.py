@@ -30,6 +30,13 @@ def _get_last_event(events: list) -> dict:
     return min(events, key=lambda e: e["minutes_before_kickoff"])
 
 
+def _get_first_event(events: list) -> dict:
+    """Return the event furthest from kickoff (largest minutes_before_kickoff)."""
+    if not events:
+        raise ValueError("Empty timeline — cannot compute baseline")
+    return max(events, key=lambda e: e["minutes_before_kickoff"])
+
+
 def _check_odds(odds: list, label: str):
     """Validate that odds are positive finite numbers."""
     for v in odds:
@@ -80,7 +87,79 @@ def implied_prob_euro(events: list) -> Dict[str, float]:
     }
 
 
-# ── Asian Baselines ────────────────────────────────────────────────────
+# ── P1.16: No-Vig Baselines ──────────────────────────────────────────────
+
+def open_no_vig_euro(events: list) -> Dict[str, float]:
+    """
+    No-vig implied probability from the *first* (opening) euro odds.
+
+    Uses 1/odds normalization on the earliest available event.
+    Returns {"home": p_h, "draw": p_d, "away": p_a} where sum ≈ 1.
+    """
+    e = _get_first_event(events)
+    h, d, a = float(e.get("euro_h", 0)), float(e.get("euro_d", 0)), float(e.get("euro_a", 0))
+    if h <= 1.0 or d <= 1.0 or a <= 1.0:
+        raise ValueError(f"Invalid opening euro odds: {h}, {d}, {a}")
+    raw_h = 1.0 / h
+    raw_d = 1.0 / d
+    raw_a = 1.0 / a
+    total = raw_h + raw_d + raw_a
+    if total <= EPS:
+        raise ValueError(f"Opening no-vig total too small: {total}")
+    return {"home": raw_h / total, "draw": raw_d / total, "away": raw_a / total}
+
+
+def close_no_vig_euro(events: list) -> Dict[str, float]:
+    """
+    No-vig implied probability from the *last* (closing) euro odds.
+
+    Identical to implied_prob_euro. Renamed for clarity in baseline comparison.
+    """
+    return implied_prob_euro(events)
+
+
+def open_no_vig_asian(events: list, num_classes: int = 3) -> Dict[str, float]:
+    """
+    No-vig water-price probability from the *first* (opening) asian handicap event.
+
+    3-class: normalized 1/water probs for upper/lower, push=0 for non-integer lines.
+    5-class: same but mapped to {upper_full_win, push, upper_full_loss}.
+    """
+    e = _get_first_event(events)
+    return _no_vig_asian_from_event(e, num_classes)
+
+
+def close_no_vig_asian(events: list, num_classes: int = 3) -> Dict[str, float]:
+    """
+    No-vig water-price probability from the *last* (closing) asian handicap event.
+
+    3-class: normalized 1/water probs for upper/lower, push=0 for non-integer lines.
+    5-class: same but mapped to {upper_full_win, push, upper_full_loss}.
+    """
+    e = _get_last_event(events)
+    return _no_vig_asian_from_event(e, num_classes)
+
+
+def _no_vig_asian_from_event(e: dict, num_classes: int) -> Dict[str, float]:
+    """Compute no-vig asian probs from a single event dict."""
+    uw = float(e.get("upper_water", 0))
+    lw = float(e.get("lower_water", 0))
+    if uw <= 0 or lw <= 0:
+        raise ValueError(f"Invalid asian water prices: upper={uw}, lower={lw}")
+
+    inv_upper = 1.0 / uw
+    inv_lower = 1.0 / lw
+    total = inv_upper + inv_lower
+    p_upper = inv_upper / total
+    p_lower = inv_lower / total
+
+    # For non-integer lines, push=0. For integer lines, push remains 0
+    # (we don't estimate push from water prices — that requires line info).
+    if num_classes == 3:
+        return {"upper": p_upper, "push": 0.0, "lower": p_lower}
+    else:
+        return {"upper_full_win": p_upper, "upper_half_win": 0.0,
+                "push": 0.0, "upper_half_loss": 0.0, "upper_full_loss": p_lower}
 
 def low_water_asian_3class(events: list, eps: float = 0.005) -> Dict[str, float]:
     """

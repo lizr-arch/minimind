@@ -16,6 +16,36 @@ because the outcome never changes — only the available information shrinks.
 
 from typing import List, Optional, Dict
 
+# ── Cutoff bucket constants ──────────────────────────────────────────
+
+CUTOFF_BUCKETS_BASE = [1440, 720, 360, 180, 120, 60, 30, 15, 5]
+CUTOFF_BUCKETS_LAST30_1MIN = list(range(30, 0, -1))
+CUTOFF_BUCKETS_V1 = [1440, 720, 360, 180, 120, 60, *list(range(30, 0, -1))]
+
+
+def assert_cutoff_integrity(
+    timeline: List[dict],
+    cutoff_minutes: float,
+    sample_id: str = "",
+) -> None:
+    """
+    P1.16: Assert that every event in a filtered timeline respects the cutoff.
+
+    Raises AssertionError if any event has minutes_before_kickoff < cutoff_minutes.
+
+    Args:
+        timeline: filtered list of event dicts.
+        cutoff_minutes: the cutoff that was used for filtering.
+        sample_id: optional identifier for error messages.
+    """
+    for e in timeline:
+        mbk = e.get("minutes_before_kickoff", 0)
+        if mbk < cutoff_minutes:
+            raise AssertionError(
+                f"Cutoff violation in sample '{sample_id}': "
+                f"event has minutes_before_kickoff={mbk} < cutoff={cutoff_minutes}"
+            )
+
 
 def filter_timeline_by_cutoff(
     timeline: List[dict],

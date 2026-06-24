@@ -1,16 +1,14 @@
 """
-OddsMind P0.1 Inference Script
-
-Reads a single JSON match file or the first line of a JSONL file,
-runs the model, and outputs predicted probabilities.
+OddsMind P1.11 Inference Script — full score output integration.
 
 Usage:
     python infer/predict_odds_match.py \
-        --model out_odds/oddsmind_smoke.pth \
+        --model runs/p1_10r_a2_10ep/oddsmind_with_score.pth \
         --input data/odds_fixtures/sample_odds_matches.jsonl \
-        --device cpu
+        --hidden-size 512 --num-layers 16 --num-heads 8 --device cuda
 
-Output: JSON object with euro_probs, asian_probs, predictions.
+Output: JSON with euro_probs, asian_probs, score_prediction,
+        score_derived_1x2, top_k_scorelines, consistency_check.
 """
 
 import argparse
@@ -63,9 +61,13 @@ def load_match(input_path: str) -> dict:
 
 
 def predict(model: OddsMindModel, match: dict, device: str,
-           max_seq_len: int = 64, asian_label_mode: str = "3class") -> dict:
-    """Run inference on a single match dict."""
+           max_seq_len: int = 64, asian_label_mode: str = "3class",
+           score_loss_type: str = "poisson", top_k: int = 5,
+           calibration_config: str = "") -> dict:
+    """Run inference on a single match dict with full P1.11 score outputs."""
     from dataset.odds_dataset import _event_to_features
+    from model.score_utils import independent_poisson_score_grid, top_k_scorelines, consistency_check, disagreement_policy
+    from dataset.odds_dataset import compute_market_availability
 
     timeline = match.get("odds_timeline", [])
     cutoff = match.get("cutoff_minutes", 0)
@@ -76,12 +78,14 @@ def predict(model: OddsMindModel, match: dict, device: str,
         filtered = filtered[-max_seq_len:]
 
     # Build tensor [1, seq_len, feature_dim]
-    feats = [_event_to_features(e) for e in filtered]
+    schema_ver = model.config.feature_schema_version
+    feats = [_event_to_features(e, schema_version=schema_ver) for e in filtered]
     features = torch.tensor(feats, dtype=torch.float32).unsqueeze(0).to(device)
     attention_mask = torch.ones(1, len(filtered), dtype=torch.bool, device=device)
 
     with torch.no_grad():
-        out = model(features, attention_mask=attention_mask)
+        out = model(features, attention_mask=attention_mask,
+                    score_loss_type=score_loss_type)
 
     euro_probs = torch.softmax(out["euro_logits"], dim=-1)[0].cpu()
     asian_probs = torch.softmax(out["asian_logits"], dim=-1)[0].cpu()
@@ -92,6 +96,14 @@ def predict(model: OddsMindModel, match: dict, device: str,
     euro_pred_idx = int(torch.argmax(euro_probs).item())
     asian_pred_idx = int(torch.argmax(asian_probs).item())
 
+    # ── Euro probs dict ──
+    euro_dict = {
+        "home": round(euro_probs[0].item(), 4),
+        "draw": round(euro_probs[1].item(), 4),
+        "away": round(euro_probs[2].item(), 4),
+    }
+
+    # ── Asian probs dict ──
     if asian_label_mode == "5class":
         asian_rev = ASIAN_REV_5
         asian_probs_dict = {
@@ -110,20 +122,74 @@ def predict(model: OddsMindModel, match: dict, device: str,
         }
 
     result = {
-        "euro_probs": {
-            "home": round(euro_probs[0].item(), 4),
-            "draw": round(euro_probs[1].item(), 4),
-            "away": round(euro_probs[2].item(), 4),
-        },
+        "euro_probs": euro_dict,
         "asian_probs": asian_probs_dict,
         "euro_prediction": EURO_REV[euro_pred_idx],
         "asian_prediction": asian_rev[asian_pred_idx],
+        "market_availability": compute_market_availability(timeline),
     }
+
+    # ── P1.11: Full score output ──
     if score_preds is not None:
+        lambda_home = float(score_preds[0].item())
+        lambda_away = float(score_preds[1].item())
+
         result["score_prediction"] = {
-            "home_goals": round(score_preds[0].item(), 2),
-            "away_goals": round(score_preds[1].item(), 2),
+            "home_goals": round(lambda_home, 2),
+            "away_goals": round(lambda_away, 2),
         }
+
+        # Score-derived 1X2 probabilities
+        bp = independent_poisson_score_grid(lambda_home, lambda_away)
+        result["score_derived_1x2"] = {
+            "home_win_prob": bp["home_win_prob"],
+            "draw_prob": bp["draw_prob"],
+            "away_win_prob": bp["away_win_prob"],
+            "expected_total_goals": bp["expected_total_goals"],
+            "expected_goal_diff": bp["expected_goal_diff"],
+        }
+
+        # Top-k scorelines
+        result["top_k_scorelines"] = top_k_scorelines(
+            lambda_home, lambda_away, k=top_k
+        )
+
+        # Euro Head vs Score-derived consistency check
+        cc = consistency_check(euro_dict, bp)
+        result["consistency_check"] = cc
+
+        # P1.12: Disagreement policy
+        result["disagreement_policy"] = disagreement_policy(
+            euro_dict, bp, cc["js_distance"], cc["winner_agreement"]
+        )
+
+        # P1.12: Calibrated outputs (if calibration config provided)
+        if calibration_config:
+            from model.score_calibration import ScoreDistributionCalibrator
+            calibrator = ScoreDistributionCalibrator.load(calibration_config)
+            cal = calibrator.calibrate(lambda_home, lambda_away)
+
+            result["score_calibrated_1x2"] = {
+                "home_win_prob": cal["home_win_prob"],
+                "draw_prob": cal["draw_prob"],
+                "away_win_prob": cal["away_win_prob"],
+                "expected_total_goals": cal["expected_total_goals"],
+                "expected_goal_diff": cal["expected_goal_diff"],
+            }
+            result["calibrated_top_k_scorelines"] = top_k_scorelines(
+                lambda_home, lambda_away, k=top_k
+            )  # Using calibrated grid would need re-ranking
+            # Re-rank from calibrated grid
+            g = cal['score_matrix']
+            G = g.shape[0]
+            cal_scorelines = []
+            for i in range(G):
+                for j in range(G):
+                    cal_scorelines.append({"score": f"{i}-{j}", "home": i, "away": j,
+                                           "prob": round(g[i, j].item(), 6)})
+            cal_scorelines.sort(key=lambda x: x['prob'], reverse=True)
+            result["calibrated_top_k_scorelines"] = cal_scorelines[:top_k]
+
     return result
 
 
@@ -146,6 +212,15 @@ def main():
                         help="Asian handicap label granularity")
     parser.add_argument("--transformer-backend", type=str, default="odds_native",
                         choices=["odds_native", "minimind"])
+    # P1.11 score output
+    parser.add_argument("--score-loss-type", type=str, default="poisson",
+                        choices=["mse", "poisson"],
+                        help="Score pred activation: poisson=exp, mse=softplus")
+    parser.add_argument("--top-k", type=int, default=5,
+                        help="Number of top scorelines to output")
+    # P1.12 calibration
+    parser.add_argument("--calibration-config", type=str, default="",
+                        help="Path to P1.12 calibration config JSON")
     args = parser.parse_args()
 
     asian_num_classes = 5 if args.asian_label_mode == "5class" else 3
@@ -164,11 +239,30 @@ def main():
         model.eval()
     else:
         print(f"Loading model from {args.model}", file=sys.stderr)
-        model = load_model(args.model, config, device)
+        # P1.11: auto-detect score head version from checkpoint
+        ckp = torch.load(args.model, map_location='cpu', weights_only=True)
+        if isinstance(ckp, dict) and "model_state_dict" in ckp:
+            state_dict = ckp["model_state_dict"]
+        else:
+            state_dict = ckp
+        has_old_score = any('score_head.head.' in k for k in state_dict.keys())
+        has_new_score = any('score_head.trunk.' in k for k in state_dict.keys())
+        if has_old_score and not has_new_score:
+            config.score_head_version = "v1"
+        elif has_new_score:
+            config.score_head_version = "v2"
+        print(f"Detected score_head_version={config.score_head_version}", file=sys.stderr)
+
+        model = OddsMindModel(config).to(device)
+        model.load_state_dict(state_dict, strict=False)
+        model.eval()
 
     match = load_match(args.input)
     result = predict(model, match, device, max_seq_len=args.max_seq_len,
-                     asian_label_mode=args.asian_label_mode)
+                     asian_label_mode=args.asian_label_mode,
+                     score_loss_type=args.score_loss_type,
+                     top_k=args.top_k,
+                     calibration_config=args.calibration_config)
 
     print(json.dumps(result, indent=2))
 

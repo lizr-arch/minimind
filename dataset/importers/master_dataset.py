@@ -1,15 +1,13 @@
 """
-Master Dataset Importer (P1.1)
+Master Dataset Importer (P1.2 — Multi-Bookmaker fix)
 
 Imports master_dataset (football_data open/close + Titan007 movement)
 into OddsMind canonical JSONL.
 
-Key features:
-- Matches football_data and Titan007 events by source_match_id
-- Merges all events into one timeline sorted by minutes_before_kickoff
-- Filters in-play (minutes_before_kickoff < 0)
-- Deduplicates consecutive identical events
-- Computes asian labels from closing event
+Key fix: groups events by (match, bookmaker) — one sample per bookmaker
+per match. No longer hardcodes "Bet365" or merges bookmakers.
+
+Replace: D:\code\git\betmind\minimind\dataset\importers\master_dataset.py
 """
 
 import json, os, sys
@@ -23,7 +21,6 @@ from dataset.odds_import_schema import validate_imported_match
 
 
 def _events_identical(a: dict, b: dict) -> bool:
-    """Check if two events are effectively identical (within epsilon)."""
     keys = ["euro_h", "euro_d", "euro_a", "asian_line", "upper_water", "lower_water"]
     return all(abs(a.get(k, 0) - b.get(k, 0)) < 1e-5 for k in keys)
 
@@ -35,12 +32,11 @@ def import_master_dataset(
     min_events: int = 1,
     limit: int = 0,
 ) -> dict:
-    """Import master_dataset directory."""
+    """Import master_dataset directory with multi-bookmaker support."""
 
-    # ── Load matches + build normalized lookup ──
+    # ── Load matches ──
     match_path = os.path.join(data_dir, "matches.jsonl")
     matches: Dict[str, dict] = {}
-    # Normalized key → source_match_id (for cross-source matching)
     norm_to_mid: Dict[str, str] = {}
     with open(match_path, "r", encoding="utf-8") as f:
         for line in f:
@@ -50,16 +46,15 @@ def import_master_dataset(
             m = json.loads(line)
             mid = m["source_match_id"]
             matches[mid] = m
-            # Build normalized key: date_home_away
             date = m.get("kickoff_time", "")[:10]
             home = m.get("home_team", "").lower().replace(" ", "")
             away = m.get("away_team", "").lower().replace(" ", "")
-            norm_key = f"{date}_{home}_{away}"
-            norm_to_mid[norm_key] = mid
+            norm_to_mid[f"{date}_{home}_{away}"] = mid
 
-    # ── Load 1X2 events ──
-    eu_events: Dict[str, List[dict]] = defaultdict(list)
+    # ── Load 1X2 events, grouped by (match_id, bookmaker) ──
+    eu_events: Dict[str, Dict[str, List[dict]]] = defaultdict(lambda: defaultdict(list))
     eu_path = os.path.join(data_dir, "odds_1x2_events.jsonl")
+    all_bookmakers: set = set()
     with open(eu_path, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -67,23 +62,24 @@ def import_master_dataset(
                 continue
             e = json.loads(line)
             mid = e["source_match_id"]
-            # Try direct match first, then normalized lookup
+            bk = e.get("bookmaker", "Bet365")
+            all_bookmakers.add(bk)
+
             if mid in matches:
-                eu_events[mid].append(e)
+                eu_events[mid][bk].append(e)
             else:
-                # Try fuzzy match: Titan007 match_id is fd-epl-DD-MM-YYYY-home-away
+                # Fuzzy match for Titan007 IDs
                 mid_parts = mid.split("-")
                 if len(mid_parts) >= 8:
-                    # Format: fd-epl-DD-MM-YYYY-home1-home2-...-away
-                    date = f"{mid_parts[4]}-{mid_parts[3]}-{mid_parts[2]}"  # YYYY-MM-DD
+                    date = f"{mid_parts[4]}-{mid_parts[3]}-{mid_parts[2]}"
                     home = "-".join(mid_parts[5:-1]).lower().replace(" ", "").replace("-", "")
                     away = mid_parts[-1].lower().replace(" ", "").replace("-", "")
                     norm_key = f"{date}_{home}_{away}"
                     if norm_key in norm_to_mid:
-                        eu_events[norm_to_mid[norm_key]].append(e)
+                        eu_events[norm_to_mid[norm_key]][bk].append(e)
 
-    # ── Load AH events (same fuzzy match) ──
-    ah_events: Dict[str, List[dict]] = defaultdict(list)
+    # ── Load AH events, grouped by (match_id, bookmaker) ──
+    ah_events: Dict[str, Dict[str, List[dict]]] = defaultdict(lambda: defaultdict(list))
     ah_path = os.path.join(data_dir, "odds_ah_events.jsonl")
     with open(ah_path, "r", encoding="utf-8") as f:
         for line in f:
@@ -92,10 +88,12 @@ def import_master_dataset(
                 continue
             e = json.loads(line)
             mid = e["source_match_id"]
+            bk = e.get("bookmaker", "Bet365")
+            all_bookmakers.add(bk)
+
             if mid in matches:
-                ah_events[mid].append(e)
+                ah_events[mid][bk].append(e)
             else:
-                # Same fuzzy match as 1X2 events
                 mid_parts = mid.split("-")
                 if len(mid_parts) >= 8:
                     date = f"{mid_parts[5]}-{mid_parts[4]}-{mid_parts[3]}"
@@ -103,18 +101,19 @@ def import_master_dataset(
                     away = mid_parts[-1].lower().replace(" ", "")
                     norm_key = f"{date}_{home}_{away}"
                     if norm_key in norm_to_mid:
-                        ah_events[norm_to_mid[norm_key]].append(e)
+                        ah_events[norm_to_mid[norm_key]][bk].append(e)
 
-    # ── Build samples ──
+    # ── Build samples — one per (match, bookmaker) ──
     samples = []
     report = {
         "total_matches": len(matches),
-        "imported_matches": 0,
+        "total_bookmakers": len(all_bookmakers),
+        "bookmakers": sorted(all_bookmakers),
+        "imported_samples": 0,
         "skipped_matches": 0,
         "errors": {"no_odds": 0, "no_asian": 0, "inplay_filtered": 0, "validation_failed": 0},
         "label_distribution": {"euro_result": {}, "asian_result": {}},
-        "timeline_stats": {"avg_len": 0.0, "min_len": 0, "max_len": 0},
-        "cutoff_available": {"90": 0, "60": 0, "30": 0, "0": 0},
+        "per_bookmaker": {},
     }
 
     count = 0
@@ -123,139 +122,132 @@ def import_master_dataset(
             break
         count += 1
 
-        eu = eu_events.get(source_mid, [])
-        ah = ah_events.get(source_mid, [])
-
-        if not eu:
+        # Collect all bookmakers that have data for this match
+        match_bms = set(eu_events.get(source_mid, {}).keys()) | set(ah_events.get(source_mid, {}).keys())
+        if not match_bms:
             report["errors"]["no_odds"] += 1
             report["skipped_matches"] += 1
             continue
 
-        # Filter in-play events (MBK < 0 OR explicitly marked in_play)
-        eu = [e for e in eu if e.get("minutes_before_kickoff", 0) >= 0 and not e.get("in_play")]
-        ah = [e for e in ah if e.get("minutes_before_kickoff", 0) >= 0 and not e.get("in_play")]
-        if not eu:
-            report["errors"]["inplay_filtered"] += 1
-            report["skipped_matches"] += 1
-            continue
+        match_has_sample = False
+        for bk in match_bms:
+            eu = eu_events.get(source_mid, {}).get(bk, [])
+            ah = ah_events.get(source_mid, {}).get(bk, [])
 
-        # Sort by minutes_before_kickoff DESC
-        eu.sort(key=lambda e: e["minutes_before_kickoff"], reverse=True)
-        ah.sort(key=lambda e: e["minutes_before_kickoff"], reverse=True)
+            # Filter in-play
+            eu = [e for e in eu if e.get("minutes_before_kickoff", 0) >= 0 and not e.get("in_play")]
+            ah = [e for e in ah if e.get("minutes_before_kickoff", 0) >= 0 and not e.get("in_play")]
+            if not eu:
+                continue  # Skip this bookmaker for this match
 
-        # Build AH lookup (keep latest event at each timestamp)
-        ah_by_time = {}
-        for ae in ah:
-            t = ae["minutes_before_kickoff"]
-            ah_by_time[t] = ae  # later events overwrite earlier at same time
+            # Sort by minutes_before_kickoff DESC
+            eu.sort(key=lambda e: e.get("minutes_before_kickoff", 0), reverse=True)
+            ah.sort(key=lambda e: e.get("minutes_before_kickoff", 0), reverse=True)
 
-        # Build timeline from 1X2 events, enriched with AH
-        odds_timeline = []
-        for eu_ev in eu:
-            t = eu_ev["minutes_before_kickoff"]
-            event = {
-                "minutes_before_kickoff": t,
-                "euro_h": eu_ev["home_odds"],
-                "euro_d": eu_ev["draw_odds"],
-                "euro_a": eu_ev["away_odds"],
-            }
-            # Match AH event at same time
-            ahev = ah_by_time.get(t)
-            if ahev:
-                event["asian_line"] = ahev["line"]
-                event["upper_water"] = ahev["home_price"]
-                event["lower_water"] = ahev["away_price"]
-            else:
-                # Use nearest previous AH event, or default
-                prev_ah = None
-                for at in sorted(ah_by_time.keys(), reverse=True):
-                    if at >= t:
-                        prev_ah = ah_by_time[at]
+            # Build AH lookup
+            ah_by_time = {}
+            for ae in ah:
+                ah_by_time[ae.get("minutes_before_kickoff", 0)] = ae
+
+            # Build timeline
+            odds_timeline = []
+            for eu_ev in eu:
+                t = eu_ev.get("minutes_before_kickoff", 0)
+                event = {
+                    "minutes_before_kickoff": t,
+                    "euro_h": eu_ev["home_odds"],
+                    "euro_d": eu_ev["draw_odds"],
+                    "euro_a": eu_ev["away_odds"],
+                }
+                ahev = ah_by_time.get(t)
+                if ahev:
+                    event["asian_line"] = ahev["line"]
+                    event["upper_water"] = ahev["home_price"]
+                    event["lower_water"] = ahev["away_price"]
+                else:
+                    prev_ah = None
+                    for at in sorted(ah_by_time.keys(), reverse=True):
+                        if at >= t:
+                            prev_ah = ah_by_time[at]
+                        else:
+                            break
+                    if prev_ah:
+                        event["asian_line"] = prev_ah["line"]
+                        event["upper_water"] = prev_ah["home_price"]
+                        event["lower_water"] = prev_ah["away_price"]
                     else:
-                        break
-                if prev_ah:
-                    event["asian_line"] = prev_ah["line"]
-                    event["upper_water"] = prev_ah["home_price"]
-                    event["lower_water"] = prev_ah["away_price"]
-                else:
-                    event["asian_line"] = 0.0
-                    event["upper_water"] = 1.0
-                    event["lower_water"] = 1.0
-            odds_timeline.append(event)
+                        event["asian_line"] = 0.0
+                        event["upper_water"] = 1.0
+                        event["lower_water"] = 1.0
+                odds_timeline.append(event)
 
-        # Deduplicate consecutive identical events
-        deduped = []
-        for ev in odds_timeline:
-            if deduped and _events_identical(deduped[-1], ev):
-                # Keep the later timestamp (closer to kickoff)
-                deduped[-1]["minutes_before_kickoff"] = ev["minutes_before_kickoff"]
+            # Deduplicate
+            deduped = []
+            for ev in odds_timeline:
+                if deduped and _events_identical(deduped[-1], ev):
+                    deduped[-1]["minutes_before_kickoff"] = ev["minutes_before_kickoff"]
+                    continue
+                deduped.append(ev)
+            odds_timeline = deduped
+
+            if len(odds_timeline) < min_events:
                 continue
-            deduped.append(ev)
-        odds_timeline = deduped
 
-        if len(odds_timeline) < min_events:
+            # Results
+            hg = match.get("home_goals", 0) or 0
+            ag = match.get("away_goals", 0) or 0
+            if hg > ag:
+                euro_result = "home"
+            elif hg < ag:
+                euro_result = "away"
+            else:
+                euro_result = "draw"
+
+            closing = odds_timeline[-1]
+            asian_result = "push"
+            has_asian = closing.get("asian_line", 0) != 0 or bool(ah)
+            if has_asian and ah:
+                ug, lg = get_upper_lower_goals(hg, ag, upper_side)
+                al = closing["asian_line"]
+                try:
+                    if asian_label_mode == "5class":
+                        asian_result = settle_asian_5class(ug, lg, al)
+                    else:
+                        asian_result = settle_asian_3class(ug, lg, al)
+                except (ValueError, KeyError):
+                    asian_result = "push"
+
+            sample = {
+                "match_id": source_mid,
+                "league_id": match.get("league_id", "unknown"),
+                "bookmaker_id": bk,
+                "kickoff_time": match.get("kickoff_time", ""),
+                "odds_timeline": odds_timeline,
+                "label": {
+                    "euro_result": euro_result,
+                    "asian_result": asian_result,
+                    "home_goals": hg,
+                    "away_goals": ag,
+                    "upper_side": upper_side,
+                },
+            }
+
+            errs = validate_imported_match(sample)
+            if errs:
+                report["errors"]["validation_failed"] += 1
+                continue
+
+            samples.append(sample)
+            match_has_sample = True
+            report["imported_samples"] += 1
+            report["label_distribution"]["euro_result"][euro_result] = \
+                report["label_distribution"]["euro_result"].get(euro_result, 0) + 1
+            report["label_distribution"]["asian_result"][asian_result] = \
+                report["label_distribution"]["asian_result"].get(asian_result, 0) + 1
+            report["per_bookmaker"][bk] = report["per_bookmaker"].get(bk, 0) + 1
+
+        if not match_has_sample:
             report["skipped_matches"] += 1
-            continue
-
-        # Euro result
-        hg = match.get("home_goals", 0) or 0
-        ag = match.get("away_goals", 0) or 0
-        if hg > ag:
-            euro_result = "home"
-        elif hg < ag:
-            euro_result = "away"
-        else:
-            euro_result = "draw"
-
-        # Asian result from closing event
-        closing = odds_timeline[-1]
-        asian_result = "push"
-        has_asian = closing.get("asian_line", 0) != 0 or bool(ah)
-        if has_asian and ah:
-            ug, lg = get_upper_lower_goals(hg, ag, upper_side)
-            al = closing["asian_line"]
-            try:
-                if asian_label_mode == "5class":
-                    asian_result = settle_asian_5class(ug, lg, al)
-                else:
-                    asian_result = settle_asian_3class(ug, lg, al)
-            except (ValueError, KeyError):
-                asian_result = "push"
-
-        # Build sample
-        sample = {
-            "match_id": source_mid,
-            "league_id": match.get("league_id", "unknown"),
-            "bookmaker_id": "Bet365",
-            "kickoff_time": match.get("kickoff_time", ""),
-            "odds_timeline": odds_timeline,
-            "label": {
-                "euro_result": euro_result,
-                "asian_result": asian_result,
-                "home_goals": hg,
-                "away_goals": ag,
-                "upper_side": upper_side,
-            },
-        }
-
-        errs = validate_imported_match(sample)
-        if errs:
-            report["errors"]["validation_failed"] += 1
-            report["skipped_matches"] += 1
-            continue
-
-        samples.append(sample)
-        report["imported_matches"] += 1
-        report["label_distribution"]["euro_result"][euro_result] = \
-            report["label_distribution"]["euro_result"].get(euro_result, 0) + 1
-        report["label_distribution"]["asian_result"][asian_result] = \
-            report["label_distribution"]["asian_result"].get(asian_result, 0) + 1
-
-        # Cutoff availability
-        mbks = [e["minutes_before_kickoff"] for e in odds_timeline]
-        for cutoff in [90, 60, 30, 0]:
-            if any(mbk >= cutoff for mbk in mbks):
-                report["cutoff_available"][str(cutoff)] += 1
 
     if samples:
         lens = [len(s["odds_timeline"]) for s in samples]

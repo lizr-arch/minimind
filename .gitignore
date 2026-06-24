@@ -9,4 +9,11 @@ data/raw_csv/
 data/raw_jsonl/
 data/odds_real/
 data/odds_imported/
+data/reports/
+data/training/
 *.pth
+*.pt
+.reasonix/
+.mimocode/
+_cutoff_stats.py
+data/odds_fixtures/_*.json

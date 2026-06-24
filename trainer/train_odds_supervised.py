@@ -86,6 +86,9 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
         score_labels = batch["score_labels"].to(args.device)
         bookmaker_ids = batch["bookmaker_ids"].to(args.device)
         consensus_feats = batch["consensus_feats"].to(args.device)
+        missing_mask = batch.get("missing_mask")
+        if missing_mask is not None:
+            missing_mask = missing_mask.to(args.device)
 
         # ── P1.2 Mixup data augmentation ──
         if args.mixup_alpha > 0:
@@ -115,6 +118,7 @@ def train_epoch(model, loader, optimizer, epoch, args, asian_weight=None, ema_mo
             score_labels=score_labels,
             bookmaker_ids=bookmaker_ids,
             consensus_feats=consensus_feats,
+            missing_mask=missing_mask,
             score_loss_weight=args.score_loss_weight,
             score_loss_type=args.score_loss_type,
         )
@@ -268,6 +272,7 @@ def main():
         asian_label_mode=args.asian_label_mode,
         allowed_match_ids=train_ids,
         seed=args.seed,
+        feature_schema_version="v2",  # P1.15B
     )
     Logger(f"  Raw matches: {dataset.num_raw_matches}")
     Logger(f"  Asian label mode: {args.asian_label_mode} ({asian_num_classes} classes)")
@@ -346,6 +351,7 @@ def main():
                 asian_label_mode=args.asian_label_mode,
                 allowed_match_ids=val_ids,
                 seed=args.seed,
+                feature_schema_version="v2",  # P1.15B
             )
             val_loader = DataLoader(val_ds, batch_size=args.batch_size,
                                     shuffle=False, collate_fn=collator)

@@ -72,7 +72,9 @@ def test_dataset():
     sample = ds[0]
     check("has features key", "features" in sample)
     check("features is 2D tensor", sample["features"].dim() == 2)
-    check("features has 7 columns", sample["features"].shape[-1] == 7)
+    check("features has 10 columns (v1) or 13 (v2)", 
+          sample["features"].shape[-1] in (10, 13),
+          f"got {sample['features'].shape[-1]}")
     check("has euro_label", "euro_label" in sample)
     check("euro_label in range", 0 <= sample["euro_label"] <= 2)
     check("has asian_label", "asian_label" in sample)
@@ -114,8 +116,9 @@ def test_model_forward():
     config = OddsMindConfig(hidden_size=256, num_hidden_layers=4, num_attention_heads=8)
     model = OddsMindModel(config).to(DEVICE)
 
-    # Dummy batch
-    features = torch.randn(2, 10, 7, device=DEVICE)
+    # Dummy batch (feature_dim=13 to match OddsMindConfig default v2 schema)
+    F = config.feature_dim  # auto: 13 for v2
+    features = torch.randn(2, 10, F, device=DEVICE)
     mask = torch.ones(2, 10, dtype=torch.bool, device=DEVICE)
     mask[0, 7:] = False  # first sample shorter
     euro_labels = torch.tensor([0, 2], device=DEVICE)
@@ -139,7 +142,7 @@ def test_training_smoke():
     config = OddsMindConfig(hidden_size=128, num_hidden_layers=2, num_attention_heads=4)
     model = OddsMindModel(config).to(DEVICE)
 
-    ds = OddsDataset(FIXTURE_PATH, max_seq_len=64)
+    ds = OddsDataset(FIXTURE_PATH, max_seq_len=64, feature_schema_version="v2")
     collator = OddsCollator()
     loader = DataLoader(ds, batch_size=4, shuffle=True, collate_fn=collator)
 
@@ -173,7 +176,7 @@ def test_inference_output():
     model = OddsMindModel(config).to(DEVICE)
     model.eval()
 
-    ds = OddsDataset(FIXTURE_PATH, max_seq_len=64)
+    ds = OddsDataset(FIXTURE_PATH, max_seq_len=64, feature_schema_version="v2")
     collator = OddsCollator()
     sample = collator([ds[0]])
 

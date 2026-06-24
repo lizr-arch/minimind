@@ -10,9 +10,11 @@ Architecture:
          ↓
     Mean Pooling       [B, H]
          ↓
-    ┌─────────────────┴──────────────────┐
-    ↓                                    ↓
-    EuroResultHead [B, 3]   AsianResultHead [B, 3]
+    ┌─────────────────┴───────────────────┐
+    ↓                                     ↓
+    EuroResultHead [B, 3]    AsianResultHead [B, 3]
+    ↓
+    ScoreHeadV2  [B, 2] + total/diff aux  (P1.10)
 
 Key design decisions for P0.1:
 - No tokenizer, no vocab, no LM head.
@@ -40,7 +42,8 @@ class OddsMindConfig:
     working 4-layer / 256-dim model suitable for smoke tests.
     """
     # Feature input
-    feature_dim: int = 7            # euro_h, euro_d, euro_a, asian_line, upper_water, lower_water, minutes_before_kickoff
+    feature_dim: int = 13           # auto-set from schema: v1=10, v2=13
+    feature_schema_version: str = "v2"  # "v1"=10dim no mask, "v2"=13dim with availability mask
 
     # Transformer body
     hidden_size: int = 256
@@ -50,6 +53,9 @@ class OddsMindConfig:
     dropout: float = 0.1
     max_seq_len: int = 512
 
+    # P1.16: Pooling mode
+    pooling_mode: str = "mean"       # "mean" | "attention" | "cls"
+
     # Classification heads
     euro_num_classes: int = 3       # home / draw / away
     asian_num_classes: int = 3      # 3-class or 5-class (P0.3)
@@ -57,6 +63,11 @@ class OddsMindConfig:
 
     # Transformer backend (P0.6)
     transformer_backend: str = "odds_native"  # "odds_native" or "minimind"
+
+    # Score head (P1.10)
+    score_head_version: str = "v2"  # "v1" (old) | "v2" (deeper+bounded+aux) | "grid" (8x8 ScoreGridHead P1.13A)
+    score_bounded_log_rate: bool = True  # True=tanh soft bound, False=hard clamp
+    score_log_rate_bound: float = 5.0
 
     # Future extensions
     num_leagues: int = 0            # 0 = no league embedding
@@ -134,7 +145,58 @@ def masked_mean_pool(
     return summed / counts
 
 
-# ── OddsMind Model ───────────────────────────────────────────────────────
+# ── P1.16: Alternative pooling methods ──────────────────────────────────
+
+class AttentionPooling(nn.Module):
+    """
+    Learnable attention pooling: a query vector attends over [B, T, H]
+    to produce a weighted sum [B, H].
+    """
+    def __init__(self, hidden_size: int):
+        super().__init__()
+        self.query = nn.Parameter(torch.randn(1, 1, hidden_size) * 0.02)
+        self.attn = nn.MultiheadAttention(
+            embed_dim=hidden_size,
+            num_heads=1,
+            batch_first=True,
+        )
+
+    def forward(
+        self,
+        hidden_states: torch.Tensor,  # [B, T, H]
+        attention_mask: torch.Tensor,  # [B, T] True=valid
+    ) -> torch.Tensor:                 # [B, H]
+        B = hidden_states.shape[0]
+        query = self.query.expand(B, -1, -1)  # [B, 1, H]
+        # key_padding_mask: True=PAD (inverted from attention_mask)
+        key_pad = ~attention_mask.bool() if attention_mask is not None else None
+        out, _ = self.attn(query, hidden_states, hidden_states, key_padding_mask=key_pad)
+        return out.squeeze(1)  # [B, H]
+
+
+class CLSTokenPooling(nn.Module):
+    """
+    CLS-token pooling: prepends a learnable [CLS] token, uses its final hidden state.
+
+    This module is instantiated per-call with the sequence, so it must be integrated
+    at the model level (prepend token before encoder, extract after).
+    For simplicity, we use a per-layer approach: the cls token is added before
+    the transformer blocks and its final state extracted after.
+    """
+    def __init__(self, hidden_size: int):
+        super().__init__()
+        self.cls_token = nn.Parameter(torch.randn(1, 1, hidden_size) * 0.02)
+
+    def prepend(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        """Prepend CLS token: [B, T, H] → [B, 1+T, H]"""
+        B = hidden_states.shape[0]
+        cls = self.cls_token.expand(B, -1, -1)
+        return torch.cat([cls, hidden_states], dim=1)
+
+    @staticmethod
+    def extract(hidden_states: torch.Tensor) -> torch.Tensor:
+        """Extract CLS token (first position): [B, 1+T, H] → [B, H]"""
+        return hidden_states[:, 0, :]
 
 class OddsMindModel(nn.Module):
     """
@@ -178,6 +240,13 @@ class OddsMindModel(nn.Module):
 
         self.final_norm = RMSNorm(self.config.hidden_size)
 
+        # P1.16: Pooling mode
+        self._pooling_mode = self.config.pooling_mode
+        if self._pooling_mode == "attention":
+            self.attention_pool = AttentionPooling(self.config.hidden_size)
+        elif self._pooling_mode == "cls":
+            self.cls_pool = CLSTokenPooling(self.config.hidden_size)
+
         self.euro_head = EuroResultHead(
             hidden_size=self.config.hidden_size,
             num_classes=self.config.euro_num_classes,
@@ -190,11 +259,26 @@ class OddsMindModel(nn.Module):
             dropout=self.config.head_dropout,
         )
 
-        from model.odds_heads import ScoreHead
-        self.score_head = ScoreHead(
-            hidden_size=self.config.hidden_size,
-            dropout=self.config.head_dropout,
-        )
+        from model.odds_heads import ScoreHead, ScoreHeadV2, ScoreGridHead
+        if self.config.score_head_version == "grid":
+            self.score_head = ScoreGridHead(
+                hidden_size=self.config.hidden_size,
+                dropout=self.config.head_dropout,
+            )
+        elif self.config.score_head_version == "v2":
+            self.score_head = ScoreHeadV2(
+                hidden_size=self.config.hidden_size,
+                dropout=self.config.head_dropout,
+                bounded_log_rate=self.config.score_bounded_log_rate,
+                log_rate_bound=self.config.score_log_rate_bound,
+            )
+        else:
+            self.score_head = ScoreHead(
+                hidden_size=self.config.hidden_size,
+                dropout=self.config.head_dropout,
+            )
+        self._score_head_v2 = (self.config.score_head_version == "v2")
+        self._score_head_grid = (self.config.score_head_version == "grid")
 
         # P1.5 bookmaker embedding
         from dataset.odds_dataset import BOOKMAKER_COUNT
@@ -218,11 +302,27 @@ class OddsMindModel(nn.Module):
         score_labels: Optional[torch.Tensor] = None,     # [B, 2] P1.4
         bookmaker_ids: Optional[torch.Tensor] = None,    # [B] P1.5
         consensus_feats: Optional[torch.Tensor] = None,  # [B, 6] P1.6
+        missing_mask: Optional[torch.Tensor] = None,     # [B, T, F] P1.16
         score_loss_weight: float = 0.1,
         score_loss_type: str = "mse",  # P1.8A: "mse" or "poisson"
     ) -> dict:
-        # ... (encoder + transformer unchanged)
-        h = self.encoder(features)
+        # P1.16: pass missing_mask to encoder (no-op passthrough for now)
+        h = self.encoder(features, missing_mask=missing_mask)
+
+        # P1.16: CLS token prepend (before transformer)
+        if self._pooling_mode == "cls":
+            h = self.cls_pool.prepend(h)
+            # Extend attention_mask with a valid position for the CLS token
+            if attention_mask is not None:
+                cls_mask = torch.ones(attention_mask.shape[0], 1, dtype=torch.bool, device=attention_mask.device)
+                attention_mask = torch.cat([cls_mask, attention_mask], dim=1)
+
+        # Store original attention_mask for closing_line extraction (before CLS prepend)
+        _orig_attention_mask = attention_mask
+        if self._pooling_mode == "cls" and attention_mask is not None:
+            # Remove CLS position for feature indexing
+            _orig_attention_mask = attention_mask[:, 1:]
+
         key_padding_mask = None
         if attention_mask is not None:
             key_padding_mask = ~attention_mask.bool()
@@ -232,10 +332,23 @@ class OddsMindModel(nn.Module):
         else:
             h = self._minimind_adapter(h, key_padding_mask=key_padding_mask)
         h = self.final_norm(h)
-        if attention_mask is None:
-            pooled = h.mean(dim=1)
+
+        # P1.16: Pooling — route by pooling_mode
+        if self._pooling_mode == "cls":
+            # CLS token was prepended before transformer; extract its final state
+            pooled = CLSTokenPooling.extract(h)
+            h = h[:, 1:, :]  # strip cls for any downstream use (not used)
+        elif self._pooling_mode == "attention":
+            if attention_mask is None:
+                pooled = self.attention_pool(h, torch.ones(h.shape[0], h.shape[1], dtype=torch.bool, device=h.device))
+            else:
+                pooled = self.attention_pool(h, attention_mask)
         else:
-            pooled = masked_mean_pool(h, attention_mask)
+            # "mean" (default)
+            if attention_mask is None:
+                pooled = h.mean(dim=1)
+            else:
+                pooled = masked_mean_pool(h, attention_mask)
 
         # P1.5: add bookmaker embedding to pooled representation
         if bookmaker_ids is not None:
@@ -251,8 +364,8 @@ class OddsMindModel(nn.Module):
 
         # Extract closing asian_line from features [B, T, 7], index 4 = asian_line
         B = features.shape[0]
-        if attention_mask is not None:
-            lengths = attention_mask.sum(dim=1).long() - 1
+        if _orig_attention_mask is not None:
+            lengths = _orig_attention_mask.sum(dim=1).long() - 1
             lengths = lengths.clamp(min=0)
             closing_line = features[torch.arange(B), lengths, 4:5]  # [B, 1]
         else:
@@ -273,49 +386,107 @@ class OddsMindModel(nn.Module):
         asian_logits = self.asian_head(asian_input)
 
         # P1.8B: legal class mask — prevent impossible predictions
+        # P1.18 fix: save raw logits for loss computation (no mask penalty).
+        # Only apply mask to the output logits used for prediction.
+        asian_logits_raw = asian_logits  # for loss
         num_ac = self.config.asian_num_classes
+        MASK_VAL = -1e4
         legal_mask = torch.ones(B, num_ac, device=features.device)
         if num_ac == 3:
-            # 3-class: push (class 1) illegal on half/quarter lines
-            push_illegal = line_is_half | line_is_quarter  # [B]
-            legal_mask[push_illegal, 1] = -1e9  # push → impossible
-        elif num_ac == 5:
-            # 5-class: push (class 2) illegal on half/quarter
             push_illegal = line_is_half | line_is_quarter
-            legal_mask[push_illegal, 2] = -1e9
-            # half_win/half_loss (class 1,3) illegal on integer
-            legal_mask[line_is_int, 1] = -1e9
-            legal_mask[line_is_int, 3] = -1e9
-            # half_win/half_loss illegal on half
-            legal_mask[line_is_half, 1] = -1e9
-            legal_mask[line_is_half, 3] = -1e9
-        asian_logits = asian_logits + legal_mask  # mask out illegal classes
+            legal_mask[push_illegal, 1] = MASK_VAL
+        elif num_ac == 5:
+            push_illegal = line_is_half | line_is_quarter
+            legal_mask[push_illegal, 2] = MASK_VAL
+            legal_mask[line_is_int, 1] = MASK_VAL
+            legal_mask[line_is_int, 3] = MASK_VAL
+            legal_mask[line_is_half, 1] = MASK_VAL
+            legal_mask[line_is_half, 3] = MASK_VAL
+        asian_logits = asian_logits + legal_mask  # masked for prediction
 
-        score_raw = self.score_head(pooled)  # [B, 2] raw output
-
-        # score_preds: always positive (exp for poisson, softplus for mse)
-        if score_loss_type == "poisson":
-            score_preds = torch.exp(score_raw)
+        # ── P1.10/P1.13A Score Head ──
+        if self._score_head_grid:
+            score_out = self.score_head(pooled)  # dict with grid_logits, grid_probs
+            score_grid_logits = score_out["score_grid_logits"]  # [B, 64]
+            score_grid_probs = score_out["score_grid_probs"]    # [B, 8, 8]
+            score_preds = score_out["score_grid_flat"]           # [B, 64]
+            total_pred = None
+            diff_pred = None
+            score_raw = score_grid_logits  # for range monitoring
+            score_log_rate = score_grid_logits
+            # Compute expected goals from grid for eval compatibility
+            from model.score_grid_utils import score_grid_predictions
+            grid_preds = score_grid_predictions(score_grid_probs)
+            score_preds_2d = torch.stack([
+                grid_preds["expected_home_goals"],
+                grid_preds["expected_away_goals"]
+            ], dim=-1)  # [B, 2]
+        elif self._score_head_v2:
+            score_out = self.score_head(pooled)  # dict
+            score_raw = score_out["score_raw"]           # [B, 2]
+            score_log_rate = score_out["score_log_rate"]  # [B, 2] bounded
+            score_preds = score_out["score_preds"]        # [B, 2]
+            total_pred = score_out["total_pred"]          # [B, 1]
+            diff_pred = score_out["diff_pred"]            # [B, 1]
         else:
-            score_preds = F.softplus(score_raw)
+            score_raw = self.score_head(pooled)  # [B, 2]
+            # P1.10: clamp eval preds too, log raw bounds for monitoring
+            score_log_rate = torch.clamp(score_raw, -5.0, 5.0)
+            if score_loss_type == "poisson":
+                score_preds = torch.exp(score_log_rate)
+            else:
+                score_preds = F.softplus(score_raw)
+            total_pred = None
+            diff_pred = None
 
-        result = {"euro_logits": euro_logits, "asian_logits": asian_logits, "score_preds": score_preds}
+        result = {
+            "euro_logits": euro_logits,
+            "asian_logits": asian_logits,
+            "score_preds": score_preds_2d if self._score_head_grid else score_preds,
+            "score_raw_min": score_raw.min().item(),
+            "score_raw_max": score_raw.max().item(),
+            "score_log_rate_min": score_log_rate.min().item(),
+            "score_log_rate_max": score_log_rate.max().item(),
+        }
+        if self._score_head_grid:
+            result["score_grid_probs"] = score_grid_probs
+            result["score_grid_logits"] = score_grid_logits
 
-        # 7. Loss
+        # 7. Loss (computed on raw logits, not masked)
         if euro_labels is not None and asian_labels is not None:
             euro_loss = F.cross_entropy(euro_logits, euro_labels)
-            asian_loss = F.cross_entropy(asian_logits, asian_labels)
+            asian_loss = F.cross_entropy(asian_logits_raw, asian_labels)
             total = euro_loss + asian_loss
             result["euro_loss"] = euro_loss
             result["asian_loss"] = asian_loss
             if score_labels is not None:
-                if score_loss_type == "poisson":
-                    # Clamp log_rate for numerical stability
-                    score_clamped = torch.clamp(score_raw, -5.0, 5.0)
+                if self._score_head_grid:
+                    # P1.13A: ScoreGridHead loss — CE + marginal losses
+                    from model.score_grid_utils import compute_score_grid_loss
+                    score_loss, aux_losses = compute_score_grid_loss(
+                        score_grid_logits, score_labels,
+                        ce_weight=1.0, result_weight=0.3,
+                        total_weight=0.3, diff_weight=0.3,
+                        soft_target=True, soft_self_weight=0.75,
+                    )
+                    aux_losses = {k: v for k, v in aux_losses.items() if k != "total"}
+                    result["aux_losses"] = aux_losses
+                elif score_loss_type == "poisson":
                     score_loss = F.poisson_nll_loss(
-                        score_clamped, score_labels.float(),
+                        score_log_rate, score_labels.float(),
                         log_input=True, full=True, reduction="mean",
                     )
+                    # P1.10: auxiliary losses (total_goals, goal_diff)
+                    aux_losses = {}
+                    if self._score_head_v2 and total_pred is not None:
+                        total_true = score_labels.sum(-1, keepdim=True).float()  # [B, 1]
+                        diff_true = (score_labels[:, 0:1] - score_labels[:, 1:2]).float()  # [B, 1]
+                        total_aux = F.smooth_l1_loss(total_pred, total_true)
+                        diff_aux = F.smooth_l1_loss(diff_pred, diff_true)
+                        score_loss = score_loss + 0.2 * total_aux + 0.2 * diff_aux
+                        aux_losses["total_aux"] = total_aux.item()
+                        aux_losses["diff_aux"] = diff_aux.item()
+                    result["aux_losses"] = aux_losses
                 else:
                     score_loss = F.mse_loss(score_preds, score_labels.float())
                 total = total + score_loss_weight * score_loss

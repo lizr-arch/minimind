@@ -1,4 +1,6 @@
-"""P1.9: Two-phase training — freeze backbone, train score head only."""
+"""P1.9/P1.10: Two-phase training — freeze backbone, train score head only.
+
+P1.10: ScoreHeadV2 with bounded log-rate + total_goals/goal_diff auxiliary heads."""
 import argparse, torch, sys, os, copy, math, random, json, warnings
 warnings.filterwarnings("ignore")
 sys.path.insert(0, '.')
@@ -46,8 +48,10 @@ def main():
             param.requires_grad = False
 
     score_params = sum(p.numel() for p in model.score_head.parameters())
-    print(f"Score head params: {score_params:,}")
-    print(f"All other params FROZEN")
+    trainable = sum(p.numel() for n, p in model.named_parameters() if p.requires_grad)
+    total = sum(p.numel() for p in model.parameters())
+    print(f"Score head params: {score_params:,}  (trainable: {trainable:,} / total: {total:,})")
+    print(f"Bounded log-rate: {getattr(model.score_head, 'bounded_log_rate', 'N/A')}")
 
     # Data
     train_ids = load_match_ids_from_file(args.train_ids)
@@ -82,8 +86,13 @@ def main():
 
             if step % 50 == 0 or step == len(loader):
                 avg_pred = out['score_preds'].mean(0).cpu().tolist()
+                raw_rng = (out.get('score_raw_min', 0), out.get('score_raw_max', 0))
+                log_rng = (out.get('score_log_rate_min', 0), out.get('score_log_rate_max', 0))
+                aux = out.get('aux_losses', {})
+                aux_str = f" total_aux={aux['total_aux']:.4f} diff_aux={aux['diff_aux']:.4f}" if aux else ""
                 print(f"Epoch {epoch}/{args.epochs} [{step}/{len(loader)}] "
-                      f"loss={loss.item():.4f} pred_avg=[{avg_pred[0]:.2f}, {avg_pred[1]:.2f}]")
+                      f"loss={loss.item():.4f}{aux_str} pred_avg=[{avg_pred[0]:.2f}, {avg_pred[1]:.2f}]"
+                      f" raw=[{raw_rng[0]:.1f},{raw_rng[1]:.1f}] log=[{log_rng[0]:.1f},{log_rng[1]:.1f}]")
 
         avg = total_loss / len(loader)
         print(f"Epoch {epoch} complete: avg_loss={avg:.4f}")

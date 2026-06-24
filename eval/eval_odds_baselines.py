@@ -38,6 +38,10 @@ from eval.odds_baselines import (
     uniform_baseline,
     euro_probs_to_tensor,
     asian_probs_to_tensor,
+    open_no_vig_euro,
+    close_no_vig_euro,
+    open_no_vig_asian,
+    close_no_vig_asian,
 )
 
 EURO_KEYS = ["home", "draw", "away"]
@@ -128,6 +132,31 @@ def evaluate_baselines_direct(
             asn_low = low_water_asian_3class(filtered)
             asn_probs = asian_probs_to_tensor(asn_low, 3)
 
+        # P1.16: No-vig baselines (with fallback for missing data)
+        try:
+            eur_open_nv = open_no_vig_euro(filtered)
+            eur_open_nv_p = euro_probs_to_tensor(eur_open_nv)
+        except (ValueError, KeyError):
+            eur_open_nv_p = torch.full((3,), 1.0/3.0)  # fallback to uniform
+
+        try:
+            eur_close_nv = close_no_vig_euro(filtered)
+            eur_close_nv_p = euro_probs_to_tensor(eur_close_nv)
+        except (ValueError, KeyError):
+            eur_close_nv_p = torch.full((3,), 1.0/3.0)
+
+        try:
+            asn_open_nv = open_no_vig_asian(filtered, asian_num_classes)
+            asn_open_nv_p = asian_probs_to_tensor(asn_open_nv, asian_num_classes)
+        except (ValueError, KeyError):
+            asn_open_nv_p = torch.full((asian_num_classes,), 1.0/asian_num_classes)
+
+        try:
+            asn_close_nv = close_no_vig_asian(filtered, asian_num_classes)
+            asn_close_nv_p = asian_probs_to_tensor(asn_close_nv, asian_num_classes)
+        except (ValueError, KeyError):
+            asn_close_nv_p = torch.full((asian_num_classes,), 1.0/asian_num_classes)
+
         # Uniform
         unif_eur = torch.full((3,), 1.0/3.0)
         unif_asn = torch.full((asian_num_classes,), 1.0/asian_num_classes)
@@ -141,6 +170,10 @@ def evaluate_baselines_direct(
             "asn_probs": asn_probs,
             "unif_eur": unif_eur,
             "unif_asn": unif_asn,
+            "eur_open_nv_p": eur_open_nv_p,
+            "eur_close_nv_p": eur_close_nv_p,
+            "asn_open_nv_p": asn_open_nv_p,
+            "asn_close_nv_p": asn_close_nv_p,
         })
 
     if not records:
@@ -159,6 +192,10 @@ def evaluate_baselines_direct(
     asn_p = torch.stack([r["asn_probs"] for r in records])
     unif_eur_p = torch.stack([r["unif_eur"] for r in records])
     unif_asn_p = torch.stack([r["unif_asn"] for r in records])
+    eur_open_nv_p = torch.stack([r["eur_open_nv_p"] for r in records])
+    eur_close_nv_p = torch.stack([r["eur_close_nv_p"] for r in records])
+    asn_open_nv_p = torch.stack([r["asn_open_nv_p"] for r in records])
+    asn_close_nv_p = torch.stack([r["asn_close_nv_p"] for r in records])
 
     eur_labels_t = torch.tensor([r["euro_label"] for r in records])
     asn_labels_t = torch.tensor([r["asian_label"] for r in records])
@@ -184,6 +221,26 @@ def evaluate_baselines_direct(
             "uniform": {
                 "euro": agg_metrics(unif_eur_p, eur_labels_t, 3),
                 "asian": agg_metrics(unif_asn_p, asn_labels_t, asian_num_classes),
+            },
+            "euro_open_no_vig": {
+                **agg_metrics(eur_open_nv_p, eur_labels_t, 3),
+                "label_counts": class_counts(eur_labels_t, 3),
+                "prediction_counts": prediction_counts_from_probs(eur_open_nv_p, 3),
+            },
+            "euro_close_no_vig": {
+                **agg_metrics(eur_close_nv_p, eur_labels_t, 3),
+                "label_counts": class_counts(eur_labels_t, 3),
+                "prediction_counts": prediction_counts_from_probs(eur_close_nv_p, 3),
+            },
+            "asian_open_no_vig": {
+                **agg_metrics(asn_open_nv_p, asn_labels_t, asian_num_classes),
+                "label_counts": class_counts(asn_labels_t, asian_num_classes),
+                "prediction_counts": prediction_counts_from_probs(asn_open_nv_p, asian_num_classes),
+            },
+            "asian_close_no_vig": {
+                **agg_metrics(asn_close_nv_p, asn_labels_t, asian_num_classes),
+                "label_counts": class_counts(asn_labels_t, asian_num_classes),
+                "prediction_counts": prediction_counts_from_probs(asn_close_nv_p, asian_num_classes),
             },
         },
     }
