@@ -41,6 +41,30 @@ LEAGUE_MAP = {k: i for i, k in enumerate(sorted([
 ]))}
 LEAGUE_COUNT = len(LEAGUE_MAP)
 
+# P0: dynamic league registry — updated at first dataset load
+_LEAGUE_REGISTRY = dict(LEAGUE_MAP)
+_LEAGUE_REGISTRY_LOCKED = False
+
+def register_leagues(league_ids):
+    """Register new leagues into the global LEAGUE_MAP. Call once before training."""
+    global LEAGUE_MAP, LEAGUE_COUNT, _LEAGUE_REGISTRY, _LEAGUE_REGISTRY_LOCKED
+    if _LEAGUE_REGISTRY_LOCKED:
+        return
+    for lg in league_ids:
+        if lg and lg not in _LEAGUE_REGISTRY:
+            _LEAGUE_REGISTRY[lg] = len(_LEAGUE_REGISTRY)
+    LEAGUE_MAP = dict(_LEAGUE_REGISTRY)
+    LEAGUE_COUNT = len(LEAGUE_MAP)
+
+def lock_league_registry():
+    """Lock the league registry so no new leagues can be added accidentally."""
+    global _LEAGUE_REGISTRY_LOCKED
+    _LEAGUE_REGISTRY_LOCKED = True
+
+def get_league_count():
+    """Return current league count (may be updated after register_leagues)."""
+    return LEAGUE_COUNT
+
 # Fixed feature order (must match OddsEventEncoder.feature_dim)
 FEATURE_KEYS = [
     "minutes_before_kickoff",
