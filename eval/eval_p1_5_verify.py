@@ -20,7 +20,7 @@ import torch, torch.nn.functional as F
 from torch import optim
 from torch.utils.data import DataLoader
 from model.model_oddsmind import OddsMindConfig, OddsMindModel
-from dataset.odds_dataset import OddsDataset
+from dataset.odds_dataset import OddsDataset, register_leagues, lock_league_registry, get_league_count
 from dataset.odds_collator import OddsCollator
 from dataset.odds_split import load_match_ids_from_file
 from eval.odds_metrics import (
@@ -186,6 +186,19 @@ def main():
     test_ids = load_match_ids_from_file(os.path.join(args.split_dir, "test_match_ids.txt"))
     print(f"Train:{len(train_ids)} Val:{len(val_ids)} Test:{len(test_ids)}")
 
+    # P0: scan data for all league IDs and register them
+    print("Registering leagues...")
+    all_leagues = set()
+    with open(args.data, encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                m = json.loads(line)
+                all_leagues.add(m.get("league_id", ""))
+    register_leagues(list(all_leagues - {""}))
+    lock_league_registry()
+    num_leagues = get_league_count()
+    print(f"  {num_leagues} leagues registered")
+
     ds_args = dict(jsonl_path=args.data, max_seq_len=64, cutoffs=cutoffs,
                    cutoff_mode="exhaustive", min_events=1, asian_label_mode="5class",
                    seed=args.seed)
@@ -194,12 +207,16 @@ def main():
     ckpt_path = os.path.join(args.out_dir, "model_v5.pth")
     config_v5 = OddsMindConfig(hidden_size=256, num_hidden_layers=4, num_attention_heads=8,
                                asian_num_classes=5, dropout=0.1, pooling_mode="mean",
-                               feature_schema_version="v5", num_leagues=5,
+                               feature_schema_version="v5", num_leagues=num_leagues,
                                transformer_backend="odds_native")
 
     if not args.skip_training:
+        print("Loading train dataset...")
         train_ds = OddsDataset(allowed_match_ids=train_ids, feature_schema_version="v5", **ds_args)
+        print(f"  {len(train_ds)} samples")
+        print("Loading val dataset...")
         val_ds = OddsDataset(allowed_match_ids=val_ids, feature_schema_version="v5", **ds_args)
+        print(f"  {len(val_ds)} samples")
         tl = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=OddsCollator())
         vl = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, collate_fn=OddsCollator())
         warmup = 5 * len(tl)

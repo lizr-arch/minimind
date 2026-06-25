@@ -122,7 +122,7 @@ def main():
     checks.append(("loss decreased epoch 1->2", True))  # placeholder
 
     # Save checkpoint and verify load
-    ckpt_path = "/tmp/p0_smoke.pth"
+    ckpt_path = os.path.join(os.path.dirname(__file__), "_p0_smoke_ckpt.pth")
     torch.save(model.state_dict(), ckpt_path)
     model2 = OddsMindModel(config).to(DEVICE)
     model2.load_state_dict(torch.load(ckpt_path, map_location=DEVICE, weights_only=True), strict=False)
