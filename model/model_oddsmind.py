@@ -44,9 +44,10 @@ class OddsMindConfig:
     # Feature input
     feature_dim: int = 13           # auto-set from schema: v1=10, v2=13
     feature_schema_version: str = "v2"  # "v1"=10dim no mask, "v2"=13dim with availability mask
+    asian_line_feature_index: int = 4  # index of asian_line in feature vector (v6_event=3)
 
     def __post_init__(self):
-        schema_dims = {"v1": 10, "v2": 13, "v3": 13, "v4": 32, "v5": 35}
+        schema_dims = {"v1": 10, "v2": 13, "v3": 13, "v4": 32, "v5": 35, "v6_event": 33}
         if self.feature_schema_version in schema_dims:
             object.__setattr__(self, 'feature_dim', schema_dims[self.feature_schema_version])
 
@@ -379,14 +380,15 @@ class OddsMindModel(nn.Module):
 
         euro_logits = self.euro_head(pooled)
 
-        # Extract closing asian_line from features [B, T, 7], index 4 = asian_line
+        # Extract closing asian_line from features
+        line_idx = self.config.asian_line_feature_index
         B = features.shape[0]
         if _orig_attention_mask is not None:
             lengths = _orig_attention_mask.sum(dim=1).long() - 1
             lengths = lengths.clamp(min=0)
-            closing_line = features[torch.arange(B), lengths, 4:5]  # [B, 1]
+            closing_line = features[torch.arange(B), lengths, line_idx:line_idx+1]  # [B, 1]
         else:
-            closing_line = features[:, -1, 4:5]  # [B, 1]
+            closing_line = features[:, -1, line_idx:line_idx+1]  # [B, 1]
 
         # Add line type features: half-line (push impossible), quarter-line
         line_val = closing_line.squeeze(-1)  # [B]
@@ -459,6 +461,7 @@ class OddsMindModel(nn.Module):
         result = {
             "euro_logits": euro_logits,
             "asian_logits": asian_logits,
+            "asian_logits_raw": asian_logits_raw,
             "score_preds": score_preds_2d if self._score_head_grid else score_preds,
             "score_raw_min": score_raw.min().item(),
             "score_raw_max": score_raw.max().item(),

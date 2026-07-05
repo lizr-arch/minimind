@@ -1,0 +1,18 @@
+# P8 Label Split Audit
+
+- phase: `P8 label split audit`
+- train_samples: `512`
+- val_samples: `512`
+- train_draw_rate: `0.119140625`
+- val_draw_rate: `0.1796875`
+- train_home_rate: `0.48046875`
+- val_home_rate: `0.4921875`
+- train_away_rate: `0.400390625`
+- val_away_rate: `0.328125`
+- class_mapping_integrity: `True`
+- duplicate_match_ids: `[]`
+- missing_result_labels: `0`
+- invalid_odds_values: `0`
+- odds_after_kickoff_count: `0`
+- latest_event_after_kickoff_count: `0`
+- hard_fail_reasons: `['train_val_draw_rate_shift']`

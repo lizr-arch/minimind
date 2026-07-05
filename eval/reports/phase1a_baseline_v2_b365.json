@@ -1,0 +1,307 @@
+{
+  "num_samples": 1768,
+  "baseline_version": "v2_joint_euro_asian",
+  "coverage": {
+    "total": 1768,
+    "by_handicap_type": {
+      "other_line": 340,
+      "line_half": 180,
+      "line_quarter": 366,
+      "line_one": 98,
+      "line_zero": 771,
+      "no_asian": 13
+    },
+    "by_league": {
+      "samerica_qual": 23,
+      "world_cup": 124,
+      "africa_qual": 38,
+      "namerica_qual": 30,
+      "epl": 85,
+      "eredivisie": 102,
+      "russia": 202,
+      "ligue1": 87,
+      "laliga": 95,
+      "seriea": 65,
+      "bundesliga": 124,
+      "primeira": 107,
+      "serieb": 120,
+      "ligue2": 100,
+      "euro_qual": 192,
+      "dfb_pokal": 6,
+      "coppa_italia": 7,
+      "conference_league": 35,
+      "fa_cup": 33,
+      "champions_league": 36,
+      "europa_league": 50,
+      "coupe_de_france": 13,
+      "copa_del_rey": 89,
+      "asia_qual": 4,
+      "league_33": 1
+    }
+  },
+  "track2": {
+    "joint_euro_asian": {
+      "accuracy": 0.5107466063348416,
+      "logloss": 0.9504785537719727,
+      "brier": 0.5676043629646301,
+      "ece": 0.028344,
+      "label_counts": {
+        "class_0": 804,
+        "class_1": 338,
+        "class_2": 626,
+        "total": 1768
+      },
+      "prediction_counts": {
+        "class_0": 1438,
+        "class_1": 5,
+        "class_2": 325,
+        "total": 1768
+      }
+    },
+    "pure_euro_reference": {
+      "accuracy": 0.6029411764705882,
+      "logloss": 0.8789292573928833,
+      "brier": 0.5140737891197205,
+      "ece": 0.060237,
+      "label_counts": {
+        "class_0": 804,
+        "class_1": 338,
+        "class_2": 626,
+        "total": 1768
+      },
+      "prediction_counts": {
+        "class_0": 1117,
+        "class_1": 11,
+        "class_2": 640,
+        "total": 1768
+      }
+    }
+  },
+  "comparison": {
+    "delta_accuracy": -0.092195,
+    "delta_logloss": 0.071549,
+    "delta_brier": 0.053531,
+    "delta_ece": -0.031893
+  },
+  "by_handicap_type": {
+    "line_half": {
+      "count": 180,
+      "joint": {
+        "accuracy": 0.55,
+        "logloss": 1.0094118118286133
+      },
+      "pure_euro": {
+        "accuracy": 0.55,
+        "logloss": 1.0110762119293213
+      }
+    },
+    "line_one": {
+      "count": 98,
+      "joint": {
+        "accuracy": 0.6326530612244898,
+        "logloss": 0.9012486934661865
+      },
+      "pure_euro": {
+        "accuracy": 0.6326530612244898,
+        "logloss": 0.9012486934661865
+      }
+    },
+    "line_quarter": {
+      "count": 366,
+      "joint": {
+        "accuracy": 0.48360655737704916,
+        "logloss": 1.0475200414657593
+      },
+      "pure_euro": {
+        "accuracy": 0.48360655737704916,
+        "logloss": 1.0475200414657593
+      }
+    },
+    "line_zero": {
+      "count": 771,
+      "joint": {
+        "accuracy": 0.3735408560311284,
+        "logloss": 1.0385925769805908
+      },
+      "pure_euro": {
+        "accuracy": 0.5849546044098574,
+        "logloss": 0.8741323947906494
+      }
+    },
+    "no_asian": {
+      "count": 13,
+      "joint": {
+        "accuracy": 0.46153846153846156,
+        "logloss": 1.116889476776123
+      },
+      "pure_euro": {
+        "accuracy": 0.46153846153846156,
+        "logloss": 1.116889476776123
+      }
+    },
+    "other_line": {
+      "count": 340,
+      "joint": {
+        "accuracy": 0.7970588235294118,
+        "logloss": 0.6228318214416504
+      },
+      "pure_euro": {
+        "accuracy": 0.7970588235294118,
+        "logloss": 0.6228318214416504
+      }
+    }
+  },
+  "by_league": {
+    "africa_qual": {
+      "count": 38,
+      "accuracy": 0.5263157894736842,
+      "logloss": 0.8070902824401855,
+      "brier": 0.47186586260795593,
+      "ece": 0.180432
+    },
+    "bundesliga": {
+      "count": 124,
+      "accuracy": 0.4112903225806452,
+      "logloss": 1.0812692642211914,
+      "brier": 0.6531933546066284,
+      "ece": 0.085946
+    },
+    "champions_league": {
+      "count": 36,
+      "accuracy": 0.4166666666666667,
+      "logloss": 1.0490574836730957,
+      "brier": 0.6379181742668152,
+      "ece": 0.132803
+    },
+    "conference_league": {
+      "count": 35,
+      "accuracy": 0.6,
+      "logloss": 0.9829922318458557,
+      "brier": 0.5824006199836731,
+      "ece": 0.210981
+    },
+    "copa_del_rey": {
+      "count": 89,
+      "accuracy": 0.5280898876404494,
+      "logloss": 0.967631459236145,
+      "brier": 0.5819111466407776,
+      "ece": 0.074707
+    },
+    "coupe_de_france": {
+      "count": 13,
+      "accuracy": 0.23076923076923078,
+      "logloss": 1.2386869192123413,
+      "brier": 0.7603862285614014,
+      "ece": 0.342395
+    },
+    "epl": {
+      "count": 85,
+      "accuracy": 0.49411764705882355,
+      "logloss": 1.0219309329986572,
+      "brier": 0.6123336553573608,
+      "ece": 0.067586
+    },
+    "eredivisie": {
+      "count": 102,
+      "accuracy": 0.4803921568627451,
+      "logloss": 0.9639394879341125,
+      "brier": 0.5776573419570923,
+      "ece": 0.063389
+    },
+    "euro_qual": {
+      "count": 192,
+      "accuracy": 0.5833333333333334,
+      "logloss": 0.7814404368400574,
+      "brier": 0.46438220143318176,
+      "ece": 0.088298
+    },
+    "europa_league": {
+      "count": 50,
+      "accuracy": 0.58,
+      "logloss": 0.9821743965148926,
+      "brier": 0.5874834060668945,
+      "ece": 0.120914
+    },
+    "fa_cup": {
+      "count": 33,
+      "accuracy": 0.45454545454545453,
+      "logloss": 1.01370108127594,
+      "brier": 0.6108740568161011,
+      "ece": 0.081531
+    },
+    "laliga": {
+      "count": 95,
+      "accuracy": 0.47368421052631576,
+      "logloss": 0.9353267550468445,
+      "brier": 0.5535043478012085,
+      "ece": 0.174588
+    },
+    "ligue1": {
+      "count": 87,
+      "accuracy": 0.5172413793103449,
+      "logloss": 0.9324900507926941,
+      "brier": 0.5491153001785278,
+      "ece": 0.112454
+    },
+    "ligue2": {
+      "count": 100,
+      "accuracy": 0.51,
+      "logloss": 1.0019758939743042,
+      "brier": 0.5957008004188538,
+      "ece": 0.041848
+    },
+    "namerica_qual": {
+      "count": 30,
+      "accuracy": 0.7666666666666667,
+      "logloss": 0.6251575350761414,
+      "brier": 0.3554842174053192,
+      "ece": 0.155764
+    },
+    "primeira": {
+      "count": 107,
+      "accuracy": 0.4485981308411215,
+      "logloss": 0.9680715799331665,
+      "brier": 0.5786433219909668,
+      "ece": 0.099013
+    },
+    "russia": {
+      "count": 202,
+      "accuracy": 0.5495049504950495,
+      "logloss": 0.9701401591300964,
+      "brier": 0.5739221572875977,
+      "ece": 0.071468
+    },
+    "samerica_qual": {
+      "count": 23,
+      "accuracy": 0.6956521739130435,
+      "logloss": 0.7500041723251343,
+      "brier": 0.4288734793663025,
+      "ece": 0.303534
+    },
+    "seriea": {
+      "count": 65,
+      "accuracy": 0.4461538461538462,
+      "logloss": 1.0284208059310913,
+      "brier": 0.6207919716835022,
+      "ece": 0.121252
+    },
+    "serieb": {
+      "count": 120,
+      "accuracy": 0.43333333333333335,
+      "logloss": 1.057428240776062,
+      "brier": 0.6372855305671692,
+      "ece": 0.056576
+    },
+    "world_cup": {
+      "count": 124,
+      "accuracy": 0.5483870967741935,
+      "logloss": 0.8695165514945984,
+      "brier": 0.5252978205680847,
+      "ece": 0.061296
+    }
+  },
+  "track1_self_consistency": {
+    "mean_kl_joint_vs_pure_euro": 0.076438,
+    "description": "KL(joint || pure_euro): how much the asian constraint shifts the euro prior.  Larger = asian adds more info."
+  }
+}

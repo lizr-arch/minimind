@@ -17,3 +17,4 @@ data/training/
 .mimocode/
 _cutoff_stats.py
 data/odds_fixtures/_*.json
+v6_all.jsonl

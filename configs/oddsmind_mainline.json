@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "mainline_id": "p16_b_mktkl_100x_old_balanced",
+  "status": "promoted",
+  "source_phase": "P16",
+  "source_run_root": "runs/p16_market_replication_selection",
+  "source_verdict": "P16_PROMOTE_P14_MARKET_REPLICATION_MAINLINE",
+  "model_family": "P6ResidualPatchITransformer",
+  "train_script": "tools/p14_train_market_replication.py",
+  "train_args": {
+    "data": "data/odds_real/titan007_pure_v4_market_semantics_v2.jsonl",
+    "train_ids": "data/odds_real/splits_v6/train_match_ids.txt",
+    "val_ids": "data/odds_real/splits_v6/val_match_ids.txt",
+    "feature_groups": "euro,asian,ou",
+    "epochs": 20,
+    "batch_size": 128,
+    "lr": 0.0003,
+    "weight_decay": 0.01,
+    "d_model": 64,
+    "n_heads": 4,
+    "n_layers": 2,
+    "d_ff": 128,
+    "dropout": 0.1,
+    "label_loss_weight": 1.0,
+    "market_loss_weight": 0.3,
+    "checkpoint_selection": "balanced",
+    "balanced_logloss_ceiling": 0.9375,
+    "diff_loss_weight": 0.3,
+    "consistency_loss_weight": 0.1,
+    "delta_l2_weight": 0.01,
+    "draw_risk_loss_weight": 0.0,
+    "scaling": "robust"
+  },
+  "selection_rule": "old_balanced",
+  "calibration_policy": {
+    "default": "identity_no_fit",
+    "val_fitted_calibration_promotable": false,
+    "note": "Val-fitted calibration remains diagnostic only."
+  },
+  "promotion_evidence": {
+    "control": {
+      "variant": "p16_control_no_market_kl",
+      "mean_val_logloss": 0.9368612766265869,
+      "mean_ece": 0.02723284174256006,
+      "draw_top2": 0.3072463870048523,
+      "mean_p_draw_true_draw": 0.19887619217236838,
+      "market_draw_mae": 0.05234424521525701
+    },
+    "metrics": {
+      "variant": "p16_b_mktkl_100x",
+      "selection_rule": "old_balanced",
+      "mean_val_logloss": 0.9370384613672892,
+      "mean_ece": 0.022996366964771604,
+      "draw_top2": 0.3851449290911357,
+      "mean_p_draw_true_draw": 0.2160190294186274,
+      "market_draw_mae": 0.03618671620885531,
+      "model_minus_market_p_draw": -0.03618650138378143,
+      "slice_gate_pass": true,
+      "draw_top2_stdev": 0.027588624361531297,
+      "mean_p_draw_true_draw_stdev": 0.002169431133258794
+    },
+    "failed_gates": []
+  },
+  "artifacts": {
+    "p16_report": "runs/p16_market_replication_selection/p16_report.md",
+    "p16_results_summary": "runs/p16_market_replication_selection/p16_results_summary.json",
+    "p16_slice_stability": "runs/p16_market_replication_selection/p16_slice_stability.csv",
+    "p16_calibration_diagnostic": "runs/p16_market_replication_selection/p16_calibration_diagnostic.json"
+  },
+  "next_phase_policy": {
+    "p17_value_detection": "design_only_until_requested",
+    "p15_draw_risk_aux": "diagnostic_only_not_mainline"
+  }
+}

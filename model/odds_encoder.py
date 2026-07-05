@@ -45,12 +45,7 @@ class OddsEventEncoder(nn.Module):
         self.feature_dim = feature_dim
         self.hidden_size = hidden_size
 
-        self.proj = nn.Sequential(
-            nn.Linear(feature_dim, hidden_size, bias=False),
-            nn.SiLU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_size, hidden_size, bias=False),
-        )
+        self.proj = nn.Linear(feature_dim, hidden_size, bias=False)
 
         # P1.17: Per-feature missing embedding — learned replacement for missing values.
         # Shape [1, 1, feature_dim] broadcasts over [B, T, F].

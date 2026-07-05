@@ -1,0 +1,1451 @@
+{
+  "total_rows": 35330,
+  "bookmakers": [
+    "Bet365",
+    "Macau",
+    "Pinnacle",
+    "Sbobet"
+  ],
+  "H1_margin": {
+    "Bet365|world_cup": {
+      "bookmaker": "Bet365",
+      "league": "world_cup",
+      "count": 722,
+      "mean_margin": 0.058535,
+      "median_margin": 0.058442,
+      "p10_margin": 0.026907,
+      "p90_margin": 0.09567
+    },
+    "Macau|world_cup": {
+      "bookmaker": "Macau",
+      "league": "world_cup",
+      "count": 463,
+      "mean_margin": 0.124397,
+      "median_margin": 0.119765,
+      "p10_margin": 0.109659,
+      "p90_margin": 0.15025
+    },
+    "Pinnacle|world_cup": {
+      "bookmaker": "Pinnacle",
+      "league": "world_cup",
+      "count": 606,
+      "mean_margin": 0.093536,
+      "median_margin": 0.09901,
+      "p10_margin": 0.050176,
+      "p90_margin": 0.121847
+    },
+    "Sbobet|world_cup": {
+      "bookmaker": "Sbobet",
+      "league": "world_cup",
+      "count": 697,
+      "mean_margin": 0.093724,
+      "median_margin": 0.100103,
+      "p10_margin": 0.050957,
+      "p90_margin": 0.124153
+    },
+    "Bet365|euro_qual": {
+      "bookmaker": "Bet365",
+      "league": "euro_qual",
+      "count": 315,
+      "mean_margin": 0.060445,
+      "median_margin": 0.059424,
+      "p10_margin": 0.048569,
+      "p90_margin": 0.06886
+    },
+    "Macau|euro_qual": {
+      "bookmaker": "Macau",
+      "league": "euro_qual",
+      "count": 6,
+      "mean_margin": 0.112808,
+      "median_margin": 0.114288,
+      "p10_margin": 0.109886,
+      "p90_margin": 0.115033
+    },
+    "Pinnacle|euro_qual": {
+      "bookmaker": "Pinnacle",
+      "league": "euro_qual",
+      "count": 6,
+      "mean_margin": 0.08551,
+      "median_margin": 0.081121,
+      "p10_margin": 0.078437,
+      "p90_margin": 0.111301
+    },
+    "Sbobet|euro_qual": {
+      "bookmaker": "Sbobet",
+      "league": "euro_qual",
+      "count": 6,
+      "mean_margin": 0.060951,
+      "median_margin": 0.053577,
+      "p10_margin": 0.051284,
+      "p90_margin": 0.084851
+    },
+    "Bet365|epl": {
+      "bookmaker": "Bet365",
+      "league": "epl",
+      "count": 9,
+      "mean_margin": 0.059993,
+      "median_margin": 0.055579,
+      "p10_margin": 0.044823,
+      "p90_margin": 0.090278
+    },
+    "Bet365|bundesliga": {
+      "bookmaker": "Bet365",
+      "league": "bundesliga",
+      "count": 300,
+      "mean_margin": 0.054071,
+      "median_margin": 0.054545,
+      "p10_margin": 0.044444,
+      "p90_margin": 0.06444
+    },
+    "Macau|bundesliga": {
+      "bookmaker": "Macau",
+      "league": "bundesliga",
+      "count": 282,
+      "mean_margin": 0.106441,
+      "median_margin": 0.10582,
+      "p10_margin": 0.102651,
+      "p90_margin": 0.110895
+    },
+    "Pinnacle|bundesliga": {
+      "bookmaker": "Pinnacle",
+      "league": "bundesliga",
+      "count": 299,
+      "mean_margin": 0.044567,
+      "median_margin": 0.042681,
+      "p10_margin": 0.038619,
+      "p90_margin": 0.051511
+    },
+    "Sbobet|bundesliga": {
+      "bookmaker": "Sbobet",
+      "league": "bundesliga",
+      "count": 583,
+      "mean_margin": 0.057779,
+      "median_margin": 0.051327,
+      "p10_margin": 0.046539,
+      "p90_margin": 0.080851
+    },
+    "Bet365|laliga": {
+      "bookmaker": "Bet365",
+      "league": "laliga",
+      "count": 986,
+      "mean_margin": 0.06166,
+      "median_margin": 0.056999,
+      "p10_margin": 0.045887,
+      "p90_margin": 0.084542
+    },
+    "Bet365|seriea": {
+      "bookmaker": "Bet365",
+      "league": "seriea",
+      "count": 718,
+      "mean_margin": 0.056398,
+      "median_margin": 0.056355,
+      "p10_margin": 0.047009,
+      "p90_margin": 0.065568
+    },
+    "Macau|seriea": {
+      "bookmaker": "Macau",
+      "league": "seriea",
+      "count": 666,
+      "mean_margin": 0.106332,
+      "median_margin": 0.105963,
+      "p10_margin": 0.102343,
+      "p90_margin": 0.110878
+    },
+    "Pinnacle|seriea": {
+      "bookmaker": "Pinnacle",
+      "league": "seriea",
+      "count": 723,
+      "mean_margin": 0.047543,
+      "median_margin": 0.049146,
+      "p10_margin": 0.039266,
+      "p90_margin": 0.052124
+    },
+    "Sbobet|seriea": {
+      "bookmaker": "Sbobet",
+      "league": "seriea",
+      "count": 918,
+      "mean_margin": 0.049907,
+      "median_margin": 0.050433,
+      "p10_margin": 0.044404,
+      "p90_margin": 0.053269
+    },
+    "Macau|laliga": {
+      "bookmaker": "Macau",
+      "league": "laliga",
+      "count": 625,
+      "mean_margin": 0.109299,
+      "median_margin": 0.10902,
+      "p10_margin": 0.103693,
+      "p90_margin": 0.114996
+    },
+    "Pinnacle|laliga": {
+      "bookmaker": "Pinnacle",
+      "league": "laliga",
+      "count": 963,
+      "mean_margin": 0.080765,
+      "median_margin": 0.079634,
+      "p10_margin": 0.048731,
+      "p90_margin": 0.120643
+    },
+    "Sbobet|laliga": {
+      "bookmaker": "Sbobet",
+      "league": "laliga",
+      "count": 1156,
+      "mean_margin": 0.066989,
+      "median_margin": 0.055205,
+      "p10_margin": 0.048532,
+      "p90_margin": 0.082911
+    },
+    "Bet365|laliga2": {
+      "bookmaker": "Bet365",
+      "league": "laliga2",
+      "count": 1296,
+      "mean_margin": 0.081883,
+      "median_margin": 0.07395,
+      "p10_margin": 0.050086,
+      "p90_margin": 0.116753
+    },
+    "Pinnacle|laliga2": {
+      "bookmaker": "Pinnacle",
+      "league": "laliga2",
+      "count": 1072,
+      "mean_margin": 0.100587,
+      "median_margin": 0.100042,
+      "p10_margin": 0.079167,
+      "p90_margin": 0.121595
+    },
+    "Sbobet|laliga2": {
+      "bookmaker": "Sbobet",
+      "league": "laliga2",
+      "count": 909,
+      "mean_margin": 0.091695,
+      "median_margin": 0.081315,
+      "p10_margin": 0.078526,
+      "p90_margin": 0.121406
+    },
+    "Macau|laliga2": {
+      "bookmaker": "Macau",
+      "league": "laliga2",
+      "count": 369,
+      "mean_margin": 0.117569,
+      "median_margin": 0.112809,
+      "p10_margin": 0.109086,
+      "p90_margin": 0.148349
+    },
+    "Bet365|dfb_pokal": {
+      "bookmaker": "Bet365",
+      "league": "dfb_pokal",
+      "count": 78,
+      "mean_margin": 0.055259,
+      "median_margin": 0.054094,
+      "p10_margin": 0.044156,
+      "p90_margin": 0.068132
+    },
+    "Pinnacle|dfb_pokal": {
+      "bookmaker": "Pinnacle",
+      "league": "dfb_pokal",
+      "count": 70,
+      "mean_margin": 0.0859,
+      "median_margin": 0.081573,
+      "p10_margin": 0.049842,
+      "p90_margin": 0.120274
+    },
+    "Sbobet|dfb_pokal": {
+      "bookmaker": "Sbobet",
+      "league": "dfb_pokal",
+      "count": 73,
+      "mean_margin": 0.089783,
+      "median_margin": 0.081898,
+      "p10_margin": 0.050319,
+      "p90_margin": 0.121931
+    },
+    "Macau|dfb_pokal": {
+      "bookmaker": "Macau",
+      "league": "dfb_pokal",
+      "count": 50,
+      "mean_margin": 0.112868,
+      "median_margin": 0.112088,
+      "p10_margin": 0.109128,
+      "p90_margin": 0.118273
+    },
+    "Bet365|championship": {
+      "bookmaker": "Bet365",
+      "league": "championship",
+      "count": 520,
+      "mean_margin": 0.055391,
+      "median_margin": 0.055556,
+      "p10_margin": 0.045547,
+      "p90_margin": 0.065268
+    },
+    "Pinnacle|championship": {
+      "bookmaker": "Pinnacle",
+      "league": "championship",
+      "count": 520,
+      "mean_margin": 0.080494,
+      "median_margin": 0.079949,
+      "p10_margin": 0.077559,
+      "p90_margin": 0.082485
+    },
+    "Sbobet|championship": {
+      "bookmaker": "Sbobet",
+      "league": "championship",
+      "count": 520,
+      "mean_margin": 0.0815,
+      "median_margin": 0.080491,
+      "p10_margin": 0.078267,
+      "p90_margin": 0.083639
+    },
+    "Macau|championship": {
+      "bookmaker": "Macau",
+      "league": "championship",
+      "count": 367,
+      "mean_margin": 0.112745,
+      "median_margin": 0.112554,
+      "p10_margin": 0.108974,
+      "p90_margin": 0.116473
+    },
+    "Bet365|ligue1": {
+      "bookmaker": "Bet365",
+      "league": "ligue1",
+      "count": 288,
+      "mean_margin": 0.056143,
+      "median_margin": 0.05641,
+      "p10_margin": 0.044823,
+      "p90_margin": 0.066775
+    },
+    "Macau|ligue1": {
+      "bookmaker": "Macau",
+      "league": "ligue1",
+      "count": 275,
+      "mean_margin": 0.106236,
+      "median_margin": 0.106117,
+      "p10_margin": 0.102694,
+      "p90_margin": 0.11088
+    },
+    "Pinnacle|ligue1": {
+      "bookmaker": "Pinnacle",
+      "league": "ligue1",
+      "count": 288,
+      "mean_margin": 0.065142,
+      "median_margin": 0.053527,
+      "p10_margin": 0.048297,
+      "p90_margin": 0.081583
+    },
+    "Sbobet|ligue1": {
+      "bookmaker": "Sbobet",
+      "league": "ligue1",
+      "count": 484,
+      "mean_margin": 0.078324,
+      "median_margin": 0.08034,
+      "p10_margin": 0.076827,
+      "p90_margin": 0.083097
+    },
+    "Bet365|ligue2": {
+      "bookmaker": "Bet365",
+      "league": "ligue2",
+      "count": 520,
+      "mean_margin": 0.075654,
+      "median_margin": 0.074359,
+      "p10_margin": 0.0597,
+      "p90_margin": 0.093865
+    },
+    "Pinnacle|ligue2": {
+      "bookmaker": "Pinnacle",
+      "league": "ligue2",
+      "count": 520,
+      "mean_margin": 0.087512,
+      "median_margin": 0.081531,
+      "p10_margin": 0.078062,
+      "p90_margin": 0.101067
+    },
+    "Sbobet|ligue2": {
+      "bookmaker": "Sbobet",
+      "league": "ligue2",
+      "count": 520,
+      "mean_margin": 0.100627,
+      "median_margin": 0.100358,
+      "p10_margin": 0.097658,
+      "p90_margin": 0.103227
+    },
+    "Macau|ligue2": {
+      "bookmaker": "Macau",
+      "league": "ligue2",
+      "count": 330,
+      "mean_margin": 0.13242,
+      "median_margin": 0.12668,
+      "p10_margin": 0.122444,
+      "p90_margin": 0.151806
+    },
+    "Bet365|bundesliga2": {
+      "bookmaker": "Bet365",
+      "league": "bundesliga2",
+      "count": 313,
+      "mean_margin": 0.061565,
+      "median_margin": 0.058333,
+      "p10_margin": 0.046448,
+      "p90_margin": 0.0755
+    },
+    "Macau|bundesliga2": {
+      "bookmaker": "Macau",
+      "league": "bundesliga2",
+      "count": 227,
+      "mean_margin": 0.111709,
+      "median_margin": 0.111951,
+      "p10_margin": 0.107331,
+      "p90_margin": 0.115644
+    },
+    "Pinnacle|bundesliga2": {
+      "bookmaker": "Pinnacle",
+      "league": "bundesliga2",
+      "count": 296,
+      "mean_margin": 0.071132,
+      "median_margin": 0.078807,
+      "p10_margin": 0.049184,
+      "p90_margin": 0.082262
+    },
+    "Sbobet|bundesliga2": {
+      "bookmaker": "Sbobet",
+      "league": "bundesliga2",
+      "count": 288,
+      "mean_margin": 0.079309,
+      "median_margin": 0.080396,
+      "p10_margin": 0.078113,
+      "p90_margin": 0.082632
+    },
+    "Bet365|champions_league": {
+      "bookmaker": "Bet365",
+      "league": "champions_league",
+      "count": 375,
+      "mean_margin": 0.058473,
+      "median_margin": 0.057586,
+      "p10_margin": 0.048762,
+      "p90_margin": 0.069491
+    },
+    "Macau|champions_league": {
+      "bookmaker": "Macau",
+      "league": "champions_league",
+      "count": 335,
+      "mean_margin": 0.107642,
+      "median_margin": 0.106242,
+      "p10_margin": 0.102664,
+      "p90_margin": 0.113349
+    },
+    "Pinnacle|champions_league": {
+      "bookmaker": "Pinnacle",
+      "league": "champions_league",
+      "count": 374,
+      "mean_margin": 0.056381,
+      "median_margin": 0.050179,
+      "p10_margin": 0.047514,
+      "p90_margin": 0.08052
+    },
+    "Sbobet|champions_league": {
+      "bookmaker": "Sbobet",
+      "league": "champions_league",
+      "count": 373,
+      "mean_margin": 0.057444,
+      "median_margin": 0.051719,
+      "p10_margin": 0.047924,
+      "p90_margin": 0.080656
+    },
+    "Bet365|serieb": {
+      "bookmaker": "Bet365",
+      "league": "serieb",
+      "count": 590,
+      "mean_margin": 0.059892,
+      "median_margin": 0.059944,
+      "p10_margin": 0.048589,
+      "p90_margin": 0.070258
+    },
+    "Pinnacle|serieb": {
+      "bookmaker": "Pinnacle",
+      "league": "serieb",
+      "count": 590,
+      "mean_margin": 0.081089,
+      "median_margin": 0.080007,
+      "p10_margin": 0.078012,
+      "p90_margin": 0.082442
+    },
+    "Sbobet|serieb": {
+      "bookmaker": "Sbobet",
+      "league": "serieb",
+      "count": 590,
+      "mean_margin": 0.081328,
+      "median_margin": 0.08061,
+      "p10_margin": 0.07823,
+      "p90_margin": 0.083576
+    },
+    "Macau|serieb": {
+      "bookmaker": "Macau",
+      "league": "serieb",
+      "count": 160,
+      "mean_margin": 0.112562,
+      "median_margin": 0.111951,
+      "p10_margin": 0.110307,
+      "p90_margin": 0.116109
+    },
+    "Bet365|copa_del_rey": {
+      "bookmaker": "Bet365",
+      "league": "copa_del_rey",
+      "count": 338,
+      "mean_margin": 0.068298,
+      "median_margin": 0.064077,
+      "p10_margin": 0.05146,
+      "p90_margin": 0.096681
+    },
+    "Macau|copa_del_rey": {
+      "bookmaker": "Macau",
+      "league": "copa_del_rey",
+      "count": 117,
+      "mean_margin": 0.118781,
+      "median_margin": 0.112848,
+      "p10_margin": 0.108607,
+      "p90_margin": 0.147468
+    },
+    "Pinnacle|copa_del_rey": {
+      "bookmaker": "Pinnacle",
+      "league": "copa_del_rey",
+      "count": 312,
+      "mean_margin": 0.107029,
+      "median_margin": 0.117456,
+      "p10_margin": 0.079437,
+      "p90_margin": 0.122263
+    },
+    "Sbobet|copa_del_rey": {
+      "bookmaker": "Sbobet",
+      "league": "copa_del_rey",
+      "count": 307,
+      "mean_margin": 0.107821,
+      "median_margin": 0.118024,
+      "p10_margin": 0.08139,
+      "p90_margin": 0.122921
+    },
+    "Bet365|coppa_italia": {
+      "bookmaker": "Bet365",
+      "league": "coppa_italia",
+      "count": 58,
+      "mean_margin": 0.057773,
+      "median_margin": 0.057455,
+      "p10_margin": 0.045066,
+      "p90_margin": 0.07082
+    },
+    "Pinnacle|coppa_italia": {
+      "bookmaker": "Pinnacle",
+      "league": "coppa_italia",
+      "count": 58,
+      "mean_margin": 0.070888,
+      "median_margin": 0.079105,
+      "p10_margin": 0.048618,
+      "p90_margin": 0.097702
+    },
+    "Sbobet|coppa_italia": {
+      "bookmaker": "Sbobet",
+      "league": "coppa_italia",
+      "count": 57,
+      "mean_margin": 0.085969,
+      "median_margin": 0.077899,
+      "p10_margin": 0.048984,
+      "p90_margin": 0.088884
+    },
+    "Macau|coppa_italia": {
+      "bookmaker": "Macau",
+      "league": "coppa_italia",
+      "count": 38,
+      "mean_margin": 0.11274,
+      "median_margin": 0.112425,
+      "p10_margin": 0.108225,
+      "p90_margin": 0.118504
+    },
+    "Bet365|europa_league": {
+      "bookmaker": "Bet365",
+      "league": "europa_league",
+      "count": 747,
+      "mean_margin": 0.080805,
+      "median_margin": 0.072261,
+      "p10_margin": 0.050549,
+      "p90_margin": 0.116385
+    },
+    "Macau|europa_league": {
+      "bookmaker": "Macau",
+      "league": "europa_league",
+      "count": 560,
+      "mean_margin": 0.134332,
+      "median_margin": 0.122203,
+      "p10_margin": 0.1098,
+      "p90_margin": 0.177154
+    },
+    "Pinnacle|europa_league": {
+      "bookmaker": "Pinnacle",
+      "league": "europa_league",
+      "count": 734,
+      "mean_margin": 0.092314,
+      "median_margin": 0.112637,
+      "p10_margin": 0.04908,
+      "p90_margin": 0.12202
+    },
+    "Sbobet|europa_league": {
+      "bookmaker": "Sbobet",
+      "league": "europa_league",
+      "count": 744,
+      "mean_margin": 0.099239,
+      "median_margin": 0.101616,
+      "p10_margin": 0.076923,
+      "p90_margin": 0.122423
+    },
+    "Bet365|fa_cup": {
+      "bookmaker": "Bet365",
+      "league": "fa_cup",
+      "count": 396,
+      "mean_margin": 0.081203,
+      "median_margin": 0.069691,
+      "p10_margin": 0.051297,
+      "p90_margin": 0.116939
+    },
+    "Pinnacle|fa_cup": {
+      "bookmaker": "Pinnacle",
+      "league": "fa_cup",
+      "count": 252,
+      "mean_margin": 0.097238,
+      "median_margin": 0.099722,
+      "p10_margin": 0.077001,
+      "p90_margin": 0.121831
+    },
+    "Sbobet|fa_cup": {
+      "bookmaker": "Sbobet",
+      "league": "fa_cup",
+      "count": 272,
+      "mean_margin": 0.101778,
+      "median_margin": 0.10087,
+      "p10_margin": 0.07933,
+      "p90_margin": 0.122136
+    },
+    "Bet365|samerica_qual": {
+      "bookmaker": "Bet365",
+      "league": "samerica_qual",
+      "count": 70,
+      "mean_margin": 0.057489,
+      "median_margin": 0.057455,
+      "p10_margin": 0.048531,
+      "p90_margin": 0.068567
+    },
+    "Bet365|asia_qual": {
+      "bookmaker": "Bet365",
+      "league": "asia_qual",
+      "count": 21,
+      "mean_margin": 0.05874,
+      "median_margin": 0.057423,
+      "p10_margin": 0.048531,
+      "p90_margin": 0.069042
+    },
+    "Bet365|coupe_de_france": {
+      "bookmaker": "Bet365",
+      "league": "coupe_de_france",
+      "count": 222,
+      "mean_margin": 0.088394,
+      "median_margin": 0.087785,
+      "p10_margin": 0.057516,
+      "p90_margin": 0.11711
+    },
+    "Pinnacle|coupe_de_france": {
+      "bookmaker": "Pinnacle",
+      "league": "coupe_de_france",
+      "count": 145,
+      "mean_margin": 0.102969,
+      "median_margin": 0.101698,
+      "p10_margin": 0.078965,
+      "p90_margin": 0.121872
+    },
+    "Macau|fa_cup": {
+      "bookmaker": "Macau",
+      "league": "fa_cup",
+      "count": 148,
+      "mean_margin": 0.112211,
+      "median_margin": 0.11196,
+      "p10_margin": 0.108295,
+      "p90_margin": 0.116701
+    },
+    "Bet365|africa_qual": {
+      "bookmaker": "Bet365",
+      "league": "africa_qual",
+      "count": 71,
+      "mean_margin": 0.05988,
+      "median_margin": 0.059449,
+      "p10_margin": 0.05007,
+      "p90_margin": 0.069379
+    },
+    "Sbobet|coupe_de_france": {
+      "bookmaker": "Sbobet",
+      "league": "coupe_de_france",
+      "count": 112,
+      "mean_margin": 0.10784,
+      "median_margin": 0.10285,
+      "p10_margin": 0.081551,
+      "p90_margin": 0.123342
+    },
+    "Macau|coupe_de_france": {
+      "bookmaker": "Macau",
+      "league": "coupe_de_france",
+      "count": 58,
+      "mean_margin": 0.128283,
+      "median_margin": 0.125,
+      "p10_margin": 0.120939,
+      "p90_margin": 0.149351
+    },
+    "Pinnacle|russia": {
+      "bookmaker": "Pinnacle",
+      "league": "russia",
+      "count": 402,
+      "mean_margin": 0.099416,
+      "median_margin": 0.084568,
+      "p10_margin": 0.078102,
+      "p90_margin": 0.122371
+    },
+    "Sbobet|russia": {
+      "bookmaker": "Sbobet",
+      "league": "russia",
+      "count": 400,
+      "mean_margin": 0.099079,
+      "median_margin": 0.084161,
+      "p10_margin": 0.078553,
+      "p90_margin": 0.122935
+    },
+    "Bet365|namerica_qual": {
+      "bookmaker": "Bet365",
+      "league": "namerica_qual",
+      "count": 59,
+      "mean_margin": 0.062887,
+      "median_margin": 0.061931,
+      "p10_margin": 0.046207,
+      "p90_margin": 0.085413
+    },
+    "Pinnacle|epl": {
+      "bookmaker": "Pinnacle",
+      "league": "epl",
+      "count": 6,
+      "mean_margin": 0.048585,
+      "median_margin": 0.049156,
+      "p10_margin": 0.044737,
+      "p90_margin": 0.050773
+    },
+    "Sbobet|epl": {
+      "bookmaker": "Sbobet",
+      "league": "epl",
+      "count": 243,
+      "mean_margin": 0.049503,
+      "median_margin": 0.050185,
+      "p10_margin": 0.043678,
+      "p90_margin": 0.05303
+    },
+    "Bet365|eredivisie": {
+      "bookmaker": "Bet365",
+      "league": "eredivisie",
+      "count": 296,
+      "mean_margin": 0.057882,
+      "median_margin": 0.057754,
+      "p10_margin": 0.048438,
+      "p90_margin": 0.06844
+    },
+    "Macau|eredivisie": {
+      "bookmaker": "Macau",
+      "league": "eredivisie",
+      "count": 230,
+      "mean_margin": 0.11175,
+      "median_margin": 0.111706,
+      "p10_margin": 0.108901,
+      "p90_margin": 0.115079
+    },
+    "Pinnacle|eredivisie": {
+      "bookmaker": "Pinnacle",
+      "league": "eredivisie",
+      "count": 295,
+      "mean_margin": 0.052045,
+      "median_margin": 0.049823,
+      "p10_margin": 0.047307,
+      "p90_margin": 0.05496
+    },
+    "Sbobet|eredivisie": {
+      "bookmaker": "Sbobet",
+      "league": "eredivisie",
+      "count": 295,
+      "mean_margin": 0.077995,
+      "median_margin": 0.080502,
+      "p10_margin": 0.056355,
+      "p90_margin": 0.083497
+    },
+    "Macau|russia": {
+      "bookmaker": "Macau",
+      "league": "russia",
+      "count": 162,
+      "mean_margin": 0.112109,
+      "median_margin": 0.111991,
+      "p10_margin": 0.109635,
+      "p90_margin": 0.114943
+    },
+    "Bet365|conference_league": {
+      "bookmaker": "Bet365",
+      "league": "conference_league",
+      "count": 380,
+      "mean_margin": 0.078622,
+      "median_margin": 0.074739,
+      "p10_margin": 0.057328,
+      "p90_margin": 0.102065
+    },
+    "Macau|conference_league": {
+      "bookmaker": "Macau",
+      "league": "conference_league",
+      "count": 261,
+      "mean_margin": 0.123434,
+      "median_margin": 0.122733,
+      "p10_margin": 0.111146,
+      "p90_margin": 0.148302
+    },
+    "Pinnacle|conference_league": {
+      "bookmaker": "Pinnacle",
+      "league": "conference_league",
+      "count": 375,
+      "mean_margin": 0.103057,
+      "median_margin": 0.117546,
+      "p10_margin": 0.078094,
+      "p90_margin": 0.122336
+    },
+    "Sbobet|conference_league": {
+      "bookmaker": "Sbobet",
+      "league": "conference_league",
+      "count": 380,
+      "mean_margin": 0.104805,
+      "median_margin": 0.118622,
+      "p10_margin": 0.079342,
+      "p90_margin": 0.123282
+    },
+    "Bet365|primeira": {
+      "bookmaker": "Bet365",
+      "league": "primeira",
+      "count": 288,
+      "mean_margin": 0.06394,
+      "median_margin": 0.06363,
+      "p10_margin": 0.055914,
+      "p90_margin": 0.072107
+    },
+    "Pinnacle|primeira": {
+      "bookmaker": "Pinnacle",
+      "league": "primeira",
+      "count": 288,
+      "mean_margin": 0.080202,
+      "median_margin": 0.080133,
+      "p10_margin": 0.077559,
+      "p90_margin": 0.083131
+    },
+    "Sbobet|primeira": {
+      "bookmaker": "Sbobet",
+      "league": "primeira",
+      "count": 288,
+      "mean_margin": 0.081005,
+      "median_margin": 0.080849,
+      "p10_margin": 0.078139,
+      "p90_margin": 0.083685
+    },
+    "Macau|primeira": {
+      "bookmaker": "Macau",
+      "league": "primeira",
+      "count": 213,
+      "mean_margin": 0.112561,
+      "median_margin": 0.11196,
+      "p10_margin": 0.109203,
+      "p90_margin": 0.116487
+    },
+    "_by_bookmaker": {
+      "Bet365": {
+        "total_count": 9977,
+        "mean_margin": 0.066946
+      },
+      "Macau": {
+        "total_count": 5944,
+        "mean_margin": 0.115728
+      },
+      "Pinnacle": {
+        "total_count": 9194,
+        "mean_margin": 0.082083
+      },
+      "Sbobet": {
+        "total_count": 10215,
+        "mean_margin": 0.080942
+      }
+    }
+  },
+  "H2_favourite_longshot_bias": {
+    "Bet365": {
+      "home": {
+        "0.0-0.2": {
+          "count": 1226,
+          "avg_implied": 0.1198,
+          "avg_actual": 0.1256,
+          "bias": -0.0058
+        },
+        "0.2-0.4": {
+          "count": 3100,
+          "avg_implied": 0.3124,
+          "avg_actual": 0.3465,
+          "bias": -0.0341
+        },
+        "0.4-0.6": {
+          "count": 3620,
+          "avg_implied": 0.4928,
+          "avg_actual": 0.547,
+          "bias": -0.0541
+        },
+        "0.6-0.8": {
+          "count": 1592,
+          "avg_implied": 0.6814,
+          "avg_actual": 0.7374,
+          "bias": -0.056
+        },
+        "0.8-1.0": {
+          "count": 439,
+          "avg_implied": 0.8683,
+          "avg_actual": 0.9226,
+          "bias": -0.0542
+        }
+      },
+      "draw": {
+        "0.0-0.2": {
+          "count": 1951,
+          "avg_implied": 0.1405,
+          "avg_actual": 0.0994,
+          "bias": 0.041
+        },
+        "0.2-0.4": {
+          "count": 8022,
+          "avg_implied": 0.2682,
+          "avg_actual": 0.2076,
+          "bias": 0.0606
+        }
+      },
+      "away": {
+        "0.0-0.2": {
+          "count": 2908,
+          "avg_implied": 0.1285,
+          "avg_actual": 0.1149,
+          "bias": 0.0136
+        },
+        "0.2-0.4": {
+          "count": 4398,
+          "avg_implied": 0.2915,
+          "avg_actual": 0.304,
+          "bias": -0.0125
+        },
+        "0.4-0.6": {
+          "count": 1774,
+          "avg_implied": 0.4863,
+          "avg_actual": 0.5349,
+          "bias": -0.0487
+        },
+        "0.6-0.8": {
+          "count": 639,
+          "avg_implied": 0.6841,
+          "avg_actual": 0.7293,
+          "bias": -0.0451
+        },
+        "0.8-1.0": {
+          "count": 258,
+          "avg_implied": 0.8864,
+          "avg_actual": 0.9419,
+          "bias": -0.0555
+        }
+      }
+    },
+    "Macau": {
+      "home": {
+        "0.0-0.2": {
+          "count": 506,
+          "avg_implied": 0.1391,
+          "avg_actual": 0.1265,
+          "bias": 0.0126
+        },
+        "0.2-0.4": {
+          "count": 2106,
+          "avg_implied": 0.3184,
+          "avg_actual": 0.3352,
+          "bias": -0.0169
+        },
+        "0.4-0.6": {
+          "count": 2318,
+          "avg_implied": 0.4786,
+          "avg_actual": 0.5449,
+          "bias": -0.0663
+        },
+        "0.6-0.8": {
+          "count": 896,
+          "avg_implied": 0.6738,
+          "avg_actual": 0.7243,
+          "bias": -0.0506
+        },
+        "0.8-1.0": {
+          "count": 118,
+          "avg_implied": 0.8391,
+          "avg_actual": 0.8983,
+          "bias": -0.0592
+        }
+      },
+      "draw": {
+        "0.0-0.2": {
+          "count": 859,
+          "avg_implied": 0.1606,
+          "avg_actual": 0.1187,
+          "bias": 0.0418
+        },
+        "0.2-0.4": {
+          "count": 5085,
+          "avg_implied": 0.2629,
+          "avg_actual": 0.2098,
+          "bias": 0.0531
+        }
+      },
+      "away": {
+        "0.0-0.2": {
+          "count": 1314,
+          "avg_implied": 0.1383,
+          "avg_actual": 0.1195,
+          "bias": 0.0188
+        },
+        "0.2-0.4": {
+          "count": 3083,
+          "avg_implied": 0.2981,
+          "avg_actual": 0.2961,
+          "bias": 0.002
+        },
+        "0.4-0.6": {
+          "count": 1167,
+          "avg_implied": 0.4728,
+          "avg_actual": 0.5398,
+          "bias": -0.0671
+        },
+        "0.6-0.8": {
+          "count": 335,
+          "avg_implied": 0.6744,
+          "avg_actual": 0.7343,
+          "bias": -0.06
+        },
+        "0.8-1.0": {
+          "count": 45,
+          "avg_implied": 0.8365,
+          "avg_actual": 0.9111,
+          "bias": -0.0746
+        }
+      }
+    },
+    "Pinnacle": {
+      "home": {
+        "0.0-0.2": {
+          "count": 852,
+          "avg_implied": 0.135,
+          "avg_actual": 0.1256,
+          "bias": 0.0094
+        },
+        "0.2-0.4": {
+          "count": 3324,
+          "avg_implied": 0.3189,
+          "avg_actual": 0.3451,
+          "bias": -0.0262
+        },
+        "0.4-0.6": {
+          "count": 3422,
+          "avg_implied": 0.4853,
+          "avg_actual": 0.5544,
+          "bias": -0.069
+        },
+        "0.6-0.8": {
+          "count": 1383,
+          "avg_implied": 0.6835,
+          "avg_actual": 0.7404,
+          "bias": -0.057
+        },
+        "0.8-1.0": {
+          "count": 213,
+          "avg_implied": 0.8375,
+          "avg_actual": 0.9061,
+          "bias": -0.0686
+        }
+      },
+      "draw": {
+        "0.0-0.2": {
+          "count": 1324,
+          "avg_implied": 0.1574,
+          "avg_actual": 0.1103,
+          "bias": 0.0472
+        },
+        "0.2-0.4": {
+          "count": 7867,
+          "avg_implied": 0.2688,
+          "avg_actual": 0.2081,
+          "bias": 0.0607
+        }
+      },
+      "away": {
+        "0.0-0.2": {
+          "count": 2256,
+          "avg_implied": 0.1335,
+          "avg_actual": 0.1192,
+          "bias": 0.0143
+        },
+        "0.2-0.4": {
+          "count": 4699,
+          "avg_implied": 0.2978,
+          "avg_actual": 0.3016,
+          "bias": -0.0038
+        },
+        "0.4-0.6": {
+          "count": 1657,
+          "avg_implied": 0.4817,
+          "avg_actual": 0.5462,
+          "bias": -0.0645
+        },
+        "0.6-0.8": {
+          "count": 502,
+          "avg_implied": 0.6843,
+          "avg_actual": 0.745,
+          "bias": -0.0608
+        },
+        "0.8-1.0": {
+          "count": 80,
+          "avg_implied": 0.8394,
+          "avg_actual": 0.9625,
+          "bias": -0.1231
+        }
+      }
+    },
+    "Sbobet": {
+      "home": {
+        "0.0-0.2": {
+          "count": 985,
+          "avg_implied": 0.133,
+          "avg_actual": 0.1218,
+          "bias": 0.0112
+        },
+        "0.2-0.4": {
+          "count": 3479,
+          "avg_implied": 0.3165,
+          "avg_actual": 0.334,
+          "bias": -0.0175
+        },
+        "0.4-0.6": {
+          "count": 3842,
+          "avg_implied": 0.4841,
+          "avg_actual": 0.5346,
+          "bias": -0.0506
+        },
+        "0.6-0.8": {
+          "count": 1610,
+          "avg_implied": 0.6815,
+          "avg_actual": 0.7385,
+          "bias": -0.057
+        },
+        "0.8-1.0": {
+          "count": 299,
+          "avg_implied": 0.8489,
+          "avg_actual": 0.903,
+          "bias": -0.0541
+        }
+      },
+      "draw": {
+        "0.0-0.2": {
+          "count": 1765,
+          "avg_implied": 0.153,
+          "avg_actual": 0.1139,
+          "bias": 0.0391
+        },
+        "0.2-0.4": {
+          "count": 8447,
+          "avg_implied": 0.2675,
+          "avg_actual": 0.2132,
+          "bias": 0.0543
+        }
+      },
+      "away": {
+        "0.0-0.2": {
+          "count": 2599,
+          "avg_implied": 0.1344,
+          "avg_actual": 0.117,
+          "bias": 0.0174
+        },
+        "0.2-0.4": {
+          "count": 5019,
+          "avg_implied": 0.2949,
+          "avg_actual": 0.305,
+          "bias": -0.0101
+        },
+        "0.4-0.6": {
+          "count": 1890,
+          "avg_implied": 0.4787,
+          "avg_actual": 0.5444,
+          "bias": -0.0658
+        },
+        "0.6-0.8": {
+          "count": 562,
+          "avg_implied": 0.6796,
+          "avg_actual": 0.7367,
+          "bias": -0.057
+        },
+        "0.8-1.0": {
+          "count": 145,
+          "avg_implied": 0.857,
+          "avg_actual": 0.9586,
+          "bias": -0.1016
+        }
+      }
+    }
+  },
+  "H3_home_bias": {
+    "Bet365": {
+      "0.0-0.3": {
+        "count": 2515,
+        "avg_implied_home": 0.1894,
+        "avg_actual_home": 0.2095,
+        "bias": -0.0201
+      },
+      "0.3-0.4": {
+        "count": 1811,
+        "avg_implied_home": 0.3527,
+        "avg_actual_home": 0.3871,
+        "bias": -0.0344
+      },
+      "0.4-0.5": {
+        "count": 2052,
+        "avg_implied_home": 0.4498,
+        "avg_actual_home": 0.4878,
+        "bias": -0.038
+      },
+      "0.5-0.6": {
+        "count": 1568,
+        "avg_implied_home": 0.5491,
+        "avg_actual_home": 0.6244,
+        "bias": -0.0752
+      },
+      "0.6-1.0": {
+        "count": 2031,
+        "avg_implied_home": 0.7218,
+        "avg_actual_home": 0.7774,
+        "bias": -0.0556
+      }
+    },
+    "Macau": {
+      "0.0-0.3": {
+        "count": 1259,
+        "avg_implied_home": 0.2096,
+        "avg_actual_home": 0.1994,
+        "bias": 0.0103
+      },
+      "0.3-0.4": {
+        "count": 1353,
+        "avg_implied_home": 0.3525,
+        "avg_actual_home": 0.3836,
+        "bias": -0.0311
+      },
+      "0.4-0.5": {
+        "count": 1526,
+        "avg_implied_home": 0.4438,
+        "avg_actual_home": 0.4987,
+        "bias": -0.0549
+      },
+      "0.5-0.6": {
+        "count": 792,
+        "avg_implied_home": 0.5457,
+        "avg_actual_home": 0.6338,
+        "bias": -0.0882
+      },
+      "0.6-1.0": {
+        "count": 1014,
+        "avg_implied_home": 0.693,
+        "avg_actual_home": 0.7446,
+        "bias": -0.0516
+      }
+    },
+    "Pinnacle": {
+      "0.0-0.3": {
+        "count": 2020,
+        "avg_implied_home": 0.2054,
+        "avg_actual_home": 0.2069,
+        "bias": -0.0016
+      },
+      "0.3-0.4": {
+        "count": 2156,
+        "avg_implied_home": 0.3526,
+        "avg_actual_home": 0.3878,
+        "bias": -0.0352
+      },
+      "0.4-0.5": {
+        "count": 2056,
+        "avg_implied_home": 0.4438,
+        "avg_actual_home": 0.5034,
+        "bias": -0.0596
+      },
+      "0.5-0.6": {
+        "count": 1366,
+        "avg_implied_home": 0.5479,
+        "avg_actual_home": 0.631,
+        "bias": -0.0831
+      },
+      "0.6-1.0": {
+        "count": 1596,
+        "avg_implied_home": 0.704,
+        "avg_actual_home": 0.7625,
+        "bias": -0.0585
+      }
+    },
+    "Sbobet": {
+      "0.0-0.3": {
+        "count": 2309,
+        "avg_implied_home": 0.2043,
+        "avg_actual_home": 0.1992,
+        "bias": 0.0051
+      },
+      "0.3-0.4": {
+        "count": 2155,
+        "avg_implied_home": 0.3529,
+        "avg_actual_home": 0.3814,
+        "bias": -0.0286
+      },
+      "0.4-0.5": {
+        "count": 2379,
+        "avg_implied_home": 0.4454,
+        "avg_actual_home": 0.4868,
+        "bias": -0.0414
+      },
+      "0.5-0.6": {
+        "count": 1463,
+        "avg_implied_home": 0.5469,
+        "avg_actual_home": 0.6124,
+        "bias": -0.0655
+      },
+      "0.6-1.0": {
+        "count": 1909,
+        "avg_implied_home": 0.7077,
+        "avg_actual_home": 0.7643,
+        "bias": -0.0565
+      }
+    }
+  },
+  "H4_lead_lag": {
+    "status": "deferred",
+    "reason": "Requires timeline format (v6_all.jsonl) \u2014 flat Phase 1a data only has open/close, not intermediate timestamps. Will revisit in Phase 1b."
+  },
+  "H5_disagreement_vs_uncertainty": {
+    "low_disagreement": {
+      "count": 2868,
+      "avg_std_implied_prob": 0.005258,
+      "avg_implied_home": 0.4945,
+      "actual_home_win_rate": 0.4916,
+      "bias": 0.0029
+    },
+    "mid_disagreement": {
+      "count": 2868,
+      "avg_std_implied_prob": 0.01054,
+      "avg_implied_home": 0.464,
+      "actual_home_win_rate": 0.4777,
+      "bias": -0.0136
+    },
+    "high_disagreement": {
+      "count": 2868,
+      "avg_std_implied_prob": 0.019577,
+      "avg_implied_home": 0.4533,
+      "actual_home_win_rate": 0.4557,
+      "bias": -0.0024
+    },
+    "total_matches": 8604,
+    "interpretation": "If actual_home_win_rate varies systematically across disagreement buckets, inter-bookmaker disagreement is a useful uncertainty signal."
+  },
+  "H6_euro_asian_inconsistency": {
+    "Bet365": {
+      "low_inconsistency": {
+        "count": 1785,
+        "avg_inconsistency": 0.014771,
+        "avg_implied_home": 0.4187,
+        "actual_home_rate": 0.4762,
+        "avg_logloss_proxy": 0.6884
+      },
+      "mid_inconsistency": {
+        "count": 1785,
+        "avg_inconsistency": 0.070088,
+        "avg_implied_home": 0.3327,
+        "actual_home_rate": 0.3546,
+        "avg_logloss_proxy": 0.6312
+      },
+      "high_inconsistency": {
+        "count": 1787,
+        "avg_inconsistency": 0.271945,
+        "avg_implied_home": 0.2335,
+        "actual_home_rate": 0.2552,
+        "avg_logloss_proxy": 0.3989
+      }
+    },
+    "Macau": {
+      "low_inconsistency": {
+        "count": 1090,
+        "avg_inconsistency": 0.015169,
+        "avg_implied_home": 0.3988,
+        "actual_home_rate": 0.4413,
+        "avg_logloss_proxy": 0.6833
+      },
+      "mid_inconsistency": {
+        "count": 1090,
+        "avg_inconsistency": 0.059692,
+        "avg_implied_home": 0.373,
+        "actual_home_rate": 0.4138,
+        "avg_logloss_proxy": 0.6465
+      },
+      "high_inconsistency": {
+        "count": 1092,
+        "avg_inconsistency": 0.198903,
+        "avg_implied_home": 0.2452,
+        "actual_home_rate": 0.2381,
+        "avg_logloss_proxy": 0.4713
+      }
+    },
+    "Pinnacle": {
+      "low_inconsistency": {
+        "count": 1657,
+        "avg_inconsistency": 0.014352,
+        "avg_implied_home": 0.3956,
+        "actual_home_rate": 0.452,
+        "avg_logloss_proxy": 0.6862
+      },
+      "mid_inconsistency": {
+        "count": 1657,
+        "avg_inconsistency": 0.057761,
+        "avg_implied_home": 0.3615,
+        "actual_home_rate": 0.3977,
+        "avg_logloss_proxy": 0.6436
+      },
+      "high_inconsistency": {
+        "count": 1659,
+        "avg_inconsistency": 0.215594,
+        "avg_implied_home": 0.2262,
+        "actual_home_rate": 0.2272,
+        "avg_logloss_proxy": 0.448
+      }
+    },
+    "Sbobet": {
+      "low_inconsistency": {
+        "count": 1841,
+        "avg_inconsistency": 0.01392,
+        "avg_implied_home": 0.4046,
+        "actual_home_rate": 0.4476,
+        "avg_logloss_proxy": 0.684
+      },
+      "mid_inconsistency": {
+        "count": 1841,
+        "avg_inconsistency": 0.060635,
+        "avg_implied_home": 0.3542,
+        "actual_home_rate": 0.3705,
+        "avg_logloss_proxy": 0.6352
+      },
+      "high_inconsistency": {
+        "count": 1841,
+        "avg_inconsistency": 0.232968,
+        "avg_implied_home": 0.2378,
+        "actual_home_rate": 0.2341,
+        "avg_logloss_proxy": 0.4192
+      }
+    },
+    "interpretation": "If avg_logloss_proxy increases with inconsistency bucket, euro-asian disagreement is a useful signal for prediction difficulty.  avg_logloss_proxy is home-win-only cross-entropy."
+  }
+}

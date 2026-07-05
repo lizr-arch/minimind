@@ -176,6 +176,7 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--out-dir", type=str, default="runs/p1_5_verify")
     parser.add_argument("--skip-training", action="store_true")
+    parser.add_argument("--no-v3-compare", action="store_true", help="Skip v3 comparison (for multi-seed)")
     args = parser.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
     setup_seed(args.seed)
@@ -241,19 +242,24 @@ def main():
     pl5 = per_league_metrics(m5["logits"], m5["labels"], m5["leagues"])
 
     # ── Eval v3 ──
-    print("--- v3 evaluation ---")
-    config_v3 = OddsMindConfig(hidden_size=256, num_hidden_layers=4, num_attention_heads=8,
-                               asian_num_classes=5, dropout=0.1, pooling_mode="mean",
-                               feature_schema_version="v3", transformer_backend="odds_native")
-    model_v3 = OddsMindModel(config_v3).to(DEVICE)
-    ckp3 = torch.load(args.v3_ckpt, map_location=DEVICE, weights_only=True)
-    if isinstance(ckp3, dict) and "model_state_dict" in ckp3: ckp3 = ckp3["model_state_dict"]
-    model_v3.load_state_dict(ckp3, strict=False); model_v3.eval()
+    if not args.no_v3_compare:
+        print("--- v3 evaluation ---")
+        config_v3 = OddsMindConfig(hidden_size=256, num_hidden_layers=4, num_attention_heads=8,
+                                   asian_num_classes=5, dropout=0.1, pooling_mode="mean",
+                                   feature_schema_version="v3", transformer_backend="odds_native")
+        model_v3 = OddsMindModel(config_v3).to(DEVICE)
+        ckp3 = torch.load(args.v3_ckpt, map_location=DEVICE, weights_only=True)
+        if isinstance(ckp3, dict) and "model_state_dict" in ckp3: ckp3 = ckp3["model_state_dict"]
+        model_v3.load_state_dict(ckp3, strict=False); model_v3.eval()
 
-    test_ds_v3 = OddsDataset(allowed_match_ids=test_ids, feature_schema_version="v3", **ds_args)
-    test_loader_v3 = DataLoader(test_ds_v3, batch_size=64, shuffle=False, collate_fn=OddsCollator())
-    m3 = evaluate(model_v3, test_loader_v3)
-    pl3 = per_league_metrics(m3["logits"], m3["labels"], m3["leagues"])
+        test_ds_v3 = OddsDataset(allowed_match_ids=test_ids, feature_schema_version="v3", **ds_args)
+        test_loader_v3 = DataLoader(test_ds_v3, batch_size=64, shuffle=False, collate_fn=OddsCollator())
+        m3 = evaluate(model_v3, test_loader_v3)
+        pl3 = per_league_metrics(m3["logits"], m3["labels"], m3["leagues"])
+    else:
+        print("--- skipping v3 comparison ---")
+        m3 = {"accuracy": 0, "logloss": 0, "brier": 0, "ece": 0}
+        pl3 = {}
 
     # ── Baseline ──
     print("--- baseline ---")
@@ -262,35 +268,41 @@ def main():
 
     # ── Print comparison ──
     print("\n" + "=" * 70)
-    print("P1.5 VERIFY: v5 vs v3 vs baseline")
+    print("P1.5 VERIFY: v5 results" + (" vs v3 vs baseline" if not args.no_v3_compare else " vs baseline"))
     print("=" * 70)
-    print(f"{'Metric':<20} {'v3':>12} {'v5':>12} {'Δ':>10} {'baseline':>12}")
-    print("-" * 66)
-    for k in ["accuracy", "logloss", "brier", "ece"]:
-        print(f"{k:<20} {m3[k]:>12.4f} {m5[k]:>12.4f} {m5[k]-m3[k]:>+10.4f} {bl_overall[k]:>12.4f}")
-
-    print(f"\n{'Per-league accuracy':<20} {'v3':>12} {'v5':>12} {'Δ':>10} {'baseline':>12}")
-    print("-" * 66)
-    for lg in sorted(set(list(pl3.keys()) + list(pl5.keys()))):
-        v3a = pl3.get(lg, {}).get("accuracy", 0)
-        v5a = pl5.get(lg, {}).get("accuracy", 0)
-        bla = bl_pl.get(lg, {}).get("accuracy", 0)
-        print(f"{lg:<20} {v3a:>12.4f} {v5a:>12.4f} {v5a-v3a:>+10.4f} {bla:>12.4f}")
-
-    # Decision
-    v5_win = sum(1 for lg in pl3 if pl5.get(lg, {}).get("accuracy", 0) > pl3.get(lg, {}).get("accuracy", 0))
-    total = len([lg for lg in pl3 if lg in pl5])
-    print(f"\nv5 beats v3 on {v5_win}/{total} leagues")
-    if m5["accuracy"] > m3["accuracy"]:
-        print(f"v5 overall accuracy +{m5['accuracy']-m3['accuracy']:.4f} — P1 effective, proceed to P2")
+    if not args.no_v3_compare:
+        print(f"{'Metric':<20} {'v3':>12} {'v5':>12} {'Δ':>10} {'baseline':>12}")
+        print("-" * 66)
+        for k in ["accuracy", "logloss", "brier", "ece"]:
+            print(f"{k:<20} {m3[k]:>12.4f} {m5[k]:>12.4f} {m5[k]-m3[k]:>+10.4f} {bl_overall[k]:>12.4f}")
     else:
-        print(f"v5 no overall improvement ({m5['accuracy']-m3['accuracy']:+.4f}) — wait for P0 data")
+        print(f"{'Metric':<20} {'v5':>12} {'baseline':>12} {'Δ':>10}")
+        print("-" * 54)
+        for k in ["accuracy", "logloss", "brier", "ece"]:
+            print(f"{k:<20} {m5[k]:>12.4f} {bl_overall[k]:>12.4f} {m5[k]-bl_overall[k]:>+10.4f}")
+
+    if not args.no_v3_compare:
+        print(f"\n{'Per-league accuracy':<20} {'v3':>12} {'v5':>12} {'Δ':>10} {'baseline':>12}")
+        print("-" * 66)
+        for lg in sorted(set(list(pl3.keys()) + list(pl5.keys()))):
+            v3a = pl3.get(lg, {}).get("accuracy", 0)
+            v5a = pl5.get(lg, {}).get("accuracy", 0)
+            bla = bl_pl.get(lg, {}).get("accuracy", 0)
+            print(f"{lg:<20} {v3a:>12.4f} {v5a:>12.4f} {v5a-v3a:>+10.4f} {bla:>12.4f}")
+        v5_win = sum(1 for lg in pl3 if pl5.get(lg, {}).get("accuracy", 0) > pl3.get(lg, {}).get("accuracy", 0))
+        total = len([lg for lg in pl3 if lg in pl5])
+        print(f"\nv5 beats v3 on {v5_win}/{total} leagues")
+
+    if m5["accuracy"] > bl_overall["accuracy"]:
+        print(f"v5 accuracy +{m5['accuracy']-bl_overall['accuracy']:.4f} over baseline — v5 is the new best model")
+    else:
+        print(f"v5 accuracy {m5['accuracy']-bl_overall['accuracy']:+.4f} vs baseline")
 
     # Save
-    report = {"v3": {k: v for k, v in m3.items() if k not in ("logits", "labels", "leagues")},
+    report = {"v3": {k: v for k, v in m3.items() if k not in ("logits", "labels", "leagues")} if not args.no_v3_compare else {},
               "v5": {k: v for k, v in m5.items() if k not in ("logits", "labels", "leagues")},
               "baseline": bl_overall, "per_league_v3": pl3, "per_league_v5": pl5,
-              "per_league_bl": bl_pl}
+              "per_league_bl": bl_pl, "seed": args.seed}
     with open(os.path.join(args.out_dir, "p1_5_report.json"), "w") as f:
         json.dump(report, f, indent=2, default=str)
     print(f"\nReport: {os.path.join(args.out_dir, 'p1_5_report.json')}")

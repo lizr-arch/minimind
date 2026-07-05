@@ -12,6 +12,7 @@ Label mapping:
 """
 
 import json
+import math
 import random
 import warnings
 from typing import Dict, List, Optional, Set, Union
@@ -346,6 +347,34 @@ V5_FEATURE_NAMES = V4_FEATURE_NAMES + [
 ]
 V5_FEATURE_DIM = len(V5_FEATURE_NAMES)  # 35
 
+# ── Phase 1b Step 1: v6_event schema (31-dim per-event features) ─────────
+
+V6_EVENT_FEATURE_NAMES = [
+    # Raw odds (9)
+    "euro_h", "euro_d", "euro_a",
+    "asian_line", "upper_water", "lower_water",
+    "ou_line", "ou_over_water", "ou_under_water",
+    # Euro implied (3)
+    "euro_implied_h", "euro_implied_d", "euro_implied_a",
+    # Euro margin (1)
+    "euro_margin",
+    # Asian 2-way (2)
+    "asian_p_upper", "asian_margin",
+    # OU 2-way (2)
+    "ou_p_over", "ou_margin",
+    # Time (2)
+    "minutes_before_kickoff", "time_delta_prev",
+    # Event type flags (4)
+    "snapshot_is_opening", "market_is_euro", "market_is_asian", "market_is_ou",
+    # Source quality (1)
+    "source_is_raw",
+    # Market availability (3)
+    "has_euro", "has_asian", "has_ou",
+    # Change features (4)
+    "euro_h_change", "asian_line_change", "upper_water_change", "ou_line_change",
+]
+V6_EVENT_FEATURE_DIM = len(V6_EVENT_FEATURE_NAMES)  # 31
+
 
 def _event_to_features_v4(event: dict) -> List[float]:
     """Extract v4 feature vector: raw odds + implied + no-vig + overround + activity."""
@@ -467,6 +496,133 @@ def _event_to_missing_mask_v5(event: dict) -> List[float]:
     return _event_to_missing_mask_v4(event) + [1.0, 1.0, 1.0]
 
 
+def _event_to_features_v6(event: dict, prev_event: dict | None) -> List[float]:
+    """Extract v6_event feature vector (31-dim) from an odds event.
+    
+    Args:
+        event: current event dict
+        prev_event: previous event dict (None if first event in sequence)
+    Returns:
+        31-dim float list
+    """
+    # Raw odds (9)
+    euro_h = float(event.get("euro_h", 0) or 0)
+    euro_d = float(event.get("euro_d", 0) or 0)
+    euro_a = float(event.get("euro_a", 0) or 0)
+    asian_line = float(event.get("asian_line", 0) or 0)
+    upper_water = float(event.get("upper_water", 0) or 0)
+    lower_water = float(event.get("lower_water", 0) or 0)
+    ou_line = float(event.get("over_under_line", 0) or 0)
+    ou_over_water = float(event.get("over_water", 0) or 0)
+    ou_under_water = float(event.get("under_water", 0) or 0)
+
+    # Euro implied probabilities (3)
+    euro_implied_h, euro_implied_d, euro_implied_a = safe_implied_probs(euro_h, euro_d, euro_a)
+
+    # Euro margin (1)
+    euro_margin = safe_overround([euro_h, euro_d, euro_a])
+
+    # Asian 2-way (2)
+    if upper_water > 0 and lower_water > 0:
+        asian_p_upper, _ = safe_2way_implied(upper_water, lower_water)
+        asian_margin = safe_overround_2way(upper_water, lower_water)
+    else:
+        asian_p_upper = 0.5
+        asian_margin = 0.0
+
+    # OU 2-way (2)
+    if ou_over_water > 0 and ou_under_water > 0:
+        ou_p_over, _ = safe_2way_implied(ou_over_water, ou_under_water)
+        ou_margin = safe_overround_2way(ou_over_water, ou_under_water)
+    else:
+        ou_p_over = 0.5
+        ou_margin = 0.0
+
+    # Time (2) — log1p normalised to prevent gradient explosion
+    raw_minutes = float(event.get("minutes_before_kickoff", 0))
+    minutes_before_kickoff = math.log1p(raw_minutes)
+    if prev_event is not None:
+        raw_prev_minutes = float(prev_event.get("minutes_before_kickoff", 0))
+        time_delta_prev = math.log1p(abs(raw_minutes - raw_prev_minutes))
+    else:
+        time_delta_prev = 0.0
+
+    # Event type flags (4)
+    snapshot_is_opening = 1.0 if event.get("snapshot_type") == "opening" else 0.0
+    market_updated = event.get("market_updated", "")
+    market_is_euro = 1.0 if market_updated == "1x2" else 0.0
+    market_is_asian = 1.0 if market_updated == "asian" else 0.0
+    market_is_ou = 1.0 if market_updated == "over_under" else 0.0
+
+    # Source quality (1)
+    source_is_raw = 1.0 if event.get("euro_source") == "raw_update" else 0.0
+
+    # Market availability (3)
+    has_euro = 1.0 if _event_has_euro(event) else 0.0
+    has_asian = 1.0 if _event_has_asian(event) else 0.0
+    has_ou = 1.0 if _event_has_over_under(event) else 0.0
+
+    # Change features (4)
+    if prev_event is not None:
+        euro_h_change = euro_h - float(prev_event.get("euro_h", 0) or 0)
+        asian_line_change = asian_line - float(prev_event.get("asian_line", 0) or 0)
+        upper_water_change = upper_water - float(prev_event.get("upper_water", 0) or 0)
+        ou_line_change = ou_line - float(prev_event.get("over_under_line", 0) or 0)
+    else:
+        euro_h_change = 0.0
+        asian_line_change = 0.0
+        upper_water_change = 0.0
+        ou_line_change = 0.0
+
+    return [
+        euro_h, euro_d, euro_a,
+        asian_line, upper_water, lower_water,
+        ou_line, ou_over_water, ou_under_water,
+        euro_implied_h, euro_implied_d, euro_implied_a,
+        euro_margin,
+        asian_p_upper, asian_margin,
+        ou_p_over, ou_margin,
+        minutes_before_kickoff, time_delta_prev,
+        snapshot_is_opening, market_is_euro, market_is_asian, market_is_ou,
+        source_is_raw,
+        has_euro, has_asian, has_ou,
+        euro_h_change, asian_line_change, upper_water_change, ou_line_change,
+    ]
+
+
+def _event_to_missing_mask_v6(event: dict) -> List[float]:
+    """Per-feature availability mask for v6_event schema (31 features).
+    
+    Rules:
+        - Dimensions 0-8 (raw odds): 0.0 if has_euro/has_asian/has_ou, else 1.0 (missing)
+        - Dimensions 9-30 (derived): 0.0 (derived features don't need mask)
+    """
+    has_euro = _event_has_euro(event)
+    has_asian = _event_has_asian(event)
+    has_ou = _event_has_over_under(event)
+
+    return [
+        (0.0 if has_euro else 1.0),    # 0: euro_h (1.0=missing)
+        (0.0 if has_euro else 1.0),    # 1: euro_d
+        (0.0 if has_euro else 1.0),    # 2: euro_a
+        (0.0 if has_asian else 1.0),   # 3: asian_line
+        (0.0 if has_asian else 1.0),   # 4: upper_water
+        (0.0 if has_asian else 1.0),   # 5: lower_water
+        (0.0 if has_ou else 1.0),      # 6: ou_line
+        (0.0 if has_ou else 1.0),      # 7: ou_over_water
+        (0.0 if has_ou else 1.0),      # 8: ou_under_water
+        0.0, 0.0, 0.0,                # 9-11: euro_implied (derived)
+        0.0,                           # 12: euro_margin (derived)
+        0.0, 0.0,                      # 13-14: asian 2-way (derived)
+        0.0, 0.0,                      # 15-16: ou 2-way (derived)
+        0.0, 0.0,                      # 17-18: time (always present)
+        0.0, 0.0, 0.0, 0.0,           # 19-22: event type flags (always present)
+        0.0,                           # 23: source_is_raw (always present)
+        0.0, 0.0, 0.0,                # 24-26: has_euro/asian/ou (always present)
+        0.0, 0.0, 0.0, 0.0,           # 27-30: change features (derived)
+    ]
+
+
 # ── P1.0E: Consensus feature modes ──────────────────────────────────────
 
 CONSENSUS_MODES = ("none", "visible_only", "legacy_full_timeline")
@@ -570,7 +726,9 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_label_mode:
         sorted_timeline = sorted_timeline[-max_seq_len:]
 
     # P1.18: handle empty timelines (e.g. all events filtered by cutoff)
-    if feature_schema_version == "v5":
+    if feature_schema_version == "v6_event":
+        fdim = V6_EVENT_FEATURE_DIM
+    elif feature_schema_version == "v5":
         fdim = V5_FEATURE_DIM
     elif feature_schema_version == "v4":
         fdim = V4_FEATURE_DIM
@@ -581,6 +739,13 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_label_mode:
 
     if len(sorted_timeline) == 0:
         features = torch.zeros(0, fdim, dtype=torch.float32)
+    elif feature_schema_version == "v6_event":
+        # v6_event: 31-dim features with prev_event context
+        feature_rows = []
+        for i, e in enumerate(sorted_timeline):
+            prev_e = sorted_timeline[i - 1] if i > 0 else None
+            feature_rows.append(_event_to_features_v6(e, prev_e))
+        features = torch.tensor(feature_rows, dtype=torch.float32)
     elif feature_schema_version == "v5":
         # v5: v4 features + 3 change rates (need timeline context)
         feature_rows = []
@@ -601,11 +766,16 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_label_mode:
             dtype=torch.float32,
         )
 
-    # P1.16: per-event missing mask (v3/v4/v5 schema)
+    # P1.16: per-event missing mask (v3/v4/v5/v6_event schema)
     missing_mask = None
-    if feature_schema_version in ("v3", "v4", "v5"):
+    if feature_schema_version in ("v3", "v4", "v5", "v6_event"):
         if len(sorted_timeline) == 0:
             missing_mask = torch.zeros(0, fdim, dtype=torch.float32)
+        elif feature_schema_version == "v6_event":
+            missing_mask = torch.tensor(
+                [_event_to_missing_mask_v6(e) for e in sorted_timeline],
+                dtype=torch.float32,
+            )
         elif feature_schema_version == "v5":
             missing_mask = torch.tensor(
                 [_event_to_missing_mask_v5(e) for e in sorted_timeline],
@@ -662,6 +832,8 @@ def _build_features_and_labels(sample: dict, max_seq_len: int, asian_label_mode:
         "match_id": match_id,
         "league_id": sample.get("league_id", ""),
         "seq_len": len(sorted_timeline),
+        "attention_mask": torch.ones(len(sorted_timeline), dtype=torch.bool),
+        "raw_timeline": sorted_timeline,
     }
     if missing_mask is not None:
         result["missing_mask"] = missing_mask

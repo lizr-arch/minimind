@@ -1,0 +1,30 @@
+{
+  "phase": "P19",
+  "task": "rolling_retrain_backtest_protocol",
+  "baseline": "P18.0_goal_diff_directional_baseline",
+  "cover_variants": ["p18_ahw_003"],
+  "direct_variants": ["p18d_direct030"],
+  "agreement_modes": ["both"],
+  "thresholds": [0.15, 0.2, 0.25, 0.3],
+  "locked_strategy": {
+    "cover_variant": "p18_ahw_003",
+    "direct_variant": "p18d_direct030",
+    "mode": "both",
+    "threshold": 0.25
+  },
+  "policy": {
+    "no_test_set": true,
+    "no_new_model_family": true,
+    "strategy_selection_inside_fold_only": true,
+    "freeze_grid_during_p19": true
+  },
+  "promotion_rules": {
+    "aggregate_forward_fixture_payoff_gt": 0.1,
+    "latest_fold_fixture_payoff_gt": 0.05,
+    "positive_fold_rate_gte": 0.7,
+    "positive_seed_rate": 1.0,
+    "min_unique_fixtures_per_fold": 80,
+    "fixture_collapsed_direction_acc_gt": 0.57,
+    "test_audit_once_only": true
+  }
+}

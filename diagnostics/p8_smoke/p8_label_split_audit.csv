@@ -1,0 +1,2 @@
+phase,train_samples,val_samples,train_draw_rate,val_draw_rate,train_home_rate,val_home_rate,train_away_rate,val_away_rate,class_mapping_integrity,duplicate_match_ids,missing_result_labels,invalid_odds_values,odds_after_kickoff_count,latest_event_after_kickoff_count,hard_fail_reasons
+P8 label split audit,512,512,0.119140625,0.1796875,0.48046875,0.4921875,0.400390625,0.328125,True,[],0,0,0,0,['train_val_draw_rate_shift']
