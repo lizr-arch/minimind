@@ -1987,6 +1987,25 @@ python llmexport.py --path /path/to/模型路径/ --export mnn --hqq --dst_path 
 }
 ```
 
+# 📦 OddsMind 数据下载
+
+本项目使用到的比赛赔率数据文件较大（~5.4 GB），未直接存放在 Git 仓库中。
+
+数据已上传至 Google Drive（[链接](https://drive.google.com/open?id=1YiWdaUayxTComVv19jknHiChqDqb24WW)）。
+
+**下载方式：**
+
+```bash
+# 方式一：gdown（推荐，无需认证）
+pip install gdown
+bash scripts/download_data.sh
+
+# 方式二：rclone（需先配置 Google Drive remote）
+bash scripts/download_data.sh
+```
+
+脚本会自动将数据下载到 `data/` 目录。
+
 # ⚖️ 开源协议
 
 本项目采用 [Apache License 2.0](LICENSE) 开源协议。
